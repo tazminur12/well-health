@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand palette */
+    --brand-green-900: #0b4d3a;
+    --brand-green-600: #16875d;
+    --brand-green-100: #e8f5ee;
+    --gold-accent: #c9a24b;
+    --neutral-900: #1a1d1f;
+    --neutral-500: #6b7280;
+    --neutral-100: #f7f8f9;
+    --white: #ffffff;
+    --error: #dc2626;
+    --success: #16875d;
+
+    /* shadcn/ui semantic tokens (HSL values without wrapper) */
+    --background: 210 17% 97%;
+    --foreground: 210 7% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 7% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 7% 11%;
+    --primary: 154 71% 31%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 146 47% 93%;
+    --secondary-foreground: 161 75% 17%;
+    --muted: 146 47% 93%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 42 52% 54%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 146 30% 88%;
+    --input: 146 30% 88%;
+    --ring: 154 71% 31%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-neutral-100 text-neutral-900 font-body antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
