@@ -17,11 +17,11 @@ import { useCartStore } from "@/store/cart-store";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About Us" },
-  { href: "/our-products", label: "Our Products" },
-  { href: "/shop", label: "Shop" },
-  { href: "/contact", label: "Contact Us" },
+  { href: "/", label: "Home", subtitle: "Start your wellness journey" },
+  { href: "/about", label: "About Us", subtitle: "Who we are and what we stand for" },
+  { href: "/our-products", label: "Our Products", subtitle: "Discover our complete range" },
+  { href: "/shop", label: "Shop", subtitle: "Browse and buy essentials" },
+  { href: "/contact", label: "Contact Us", subtitle: "Talk to our support team" },
 ];
 
 export function Navbar() {
@@ -29,6 +29,9 @@ export function Navbar() {
   const itemCount = useCartStore((state) => state.itemCount);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const isLinkActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,6 +47,19 @@ export function Navbar() {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
 
   return (
     <header
@@ -72,10 +88,7 @@ export function Navbar() {
 
         <nav className="hidden items-center gap-8 xl:flex">
           {navLinks.map((link) => {
-            const isActive =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const isActive = isLinkActive(link.href);
 
             return (
               <Link
@@ -135,73 +148,106 @@ export function Navbar() {
 
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-white/98 px-6 py-6 transition-transform duration-200 xl:hidden",
-          isMenuOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
+          "fixed inset-0 z-50 transition-opacity duration-200 xl:hidden",
+          isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         )}
       >
-        <div className="flex items-center justify-between border-b border-brand-green-100 pb-4">
-          <div>
-            <p className="font-heading text-lg font-semibold tracking-[0.18em] text-brand-green-900">
-              WELL HEALTH
-            </p>
-            <p className="text-sm font-medium text-brand-green-600">
-              TRADE INTERNATIONAL
-            </p>
-          </div>
+        <button
+          aria-label="Close menu"
+          className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
+          onClick={() => setIsMenuOpen(false)}
+          type="button"
+        />
 
-          <button
-            aria-label="Close menu"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm"
-            onClick={() => setIsMenuOpen(false)}
-            type="button"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        <aside
+          className={cn(
+            "relative flex h-full w-[min(90vw,24rem)] flex-col border-r border-brand-green-100 bg-neutral-100 px-5 pb-5 pt-6 shadow-[0_18px_40px_rgba(11,77,58,0.2)] transition-transform duration-200",
+            isMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-brand-green-100 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-green-100 text-brand-green-900 shadow-sm">
+                <Leaf className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-heading text-base font-semibold tracking-[0.14em] text-brand-green-900">
+                  WELL HEALTH
+                </p>
+                <p className="text-xs font-medium text-brand-green-600">
+                  TRADE INTERNATIONAL
+                </p>
+              </div>
+            </div>
 
-        <div className="mt-8 flex h-[calc(100vh-8rem)] flex-col justify-between">
-          <nav className="space-y-4">
-            {navLinks.map((link) => {
-              const isActive =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
-
-              return (
-                <Link
-                  key={link.href}
-                  className={cn(
-                    "flex items-center justify-between rounded-2xl border border-brand-green-100 px-5 py-4 text-xl font-medium text-neutral-900 shadow-sm",
-                    isActive && "border-brand-green-600/30 bg-brand-green-100 text-brand-green-600"
-                  )}
-                  href={link.href}
-                >
-                  {link.label}
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="grid gap-3 rounded-2xl bg-brand-green-100 p-5 text-sm text-neutral-900">
-            <label className="flex h-12 items-center gap-2 rounded-full bg-white px-4 shadow-sm ring-1 ring-brand-green-100">
-              <Search className="h-4 w-4 text-neutral-500" />
-              <input
-                aria-label="Search site mobile"
-                className="w-full bg-transparent text-sm focus:outline-none"
-                placeholder="Search products"
-                type="search"
-              />
-            </label>
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green-600 px-5 py-3 font-medium text-white shadow-sm"
+              aria-label="Close menu"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm"
+              onClick={() => setIsMenuOpen(false)}
               type="button"
             >
-              <ShoppingCart className="h-4 w-4" />
-              Cart ({itemCount})
+              <X className="h-5 w-5" />
             </button>
           </div>
-        </div>
+
+          <div className="mt-6 flex min-h-0 flex-1 flex-col justify-between gap-5">
+            <nav className="space-y-3 overflow-y-auto pr-1">
+              {navLinks.map((link) => {
+                const isActive = isLinkActive(link.href);
+
+                return (
+                  <Link
+                    key={link.href}
+                    className={cn(
+                      "group flex items-center justify-between rounded-2xl border border-brand-green-100 bg-white px-4 py-3 text-neutral-900 shadow-sm",
+                      isActive && "border-brand-green-600/30 bg-brand-green-100"
+                    )}
+                    href={link.href}
+                  >
+                    <span className="min-w-0">
+                      <span
+                        className={cn(
+                          "block truncate text-base font-semibold",
+                          isActive ? "text-brand-green-700" : "text-neutral-900"
+                        )}
+                      >
+                        {link.label}
+                      </span>
+                      <span className="block truncate pt-0.5 text-xs text-neutral-500">
+                        {link.subtitle}
+                      </span>
+                    </span>
+                    <ArrowRight
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200 group-hover:translate-x-0.5",
+                        isActive && "text-brand-green-600"
+                      )}
+                    />
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="grid gap-3 rounded-2xl border border-brand-green-100 bg-white p-4 text-sm text-neutral-900 shadow-sm">
+              <label className="flex h-11 items-center gap-2 rounded-full bg-neutral-100 px-4 ring-1 ring-brand-green-100/60">
+                <Search className="h-4 w-4 text-neutral-500" />
+                <input
+                  aria-label="Search site mobile"
+                  className="w-full bg-transparent text-sm placeholder:text-neutral-500 focus:outline-none"
+                  placeholder="Search products"
+                  type="search"
+                />
+              </label>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm"
+                type="button"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Cart ({itemCount})
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
     </header>
   );

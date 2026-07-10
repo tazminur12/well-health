@@ -9,6 +9,8 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  FileText,
+  PanelsTopLeft,
   Package,
   ShoppingBag,
   Settings,
@@ -45,6 +47,8 @@ const navItems: AdminNavItem[] = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/blog", label: "Blog", icon: FileText },
+  { href: "/admin/content", label: "Content", icon: PanelsTopLeft },
   { href: "/admin/chat", label: "Chat", icon: MessageCircle, unreadCount: 7 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
@@ -71,6 +75,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (pathname?.includes("/products")) return "Products";
     if (pathname?.includes("/orders")) return "Orders";
     if (pathname?.includes("/customers")) return "Customers";
+    if (pathname?.includes("/blog")) return "Blog";
+    if (pathname?.includes("/content")) return "Content";
     if (pathname?.includes("/chat")) return "Chat";
     if (pathname?.includes("/settings")) return "Settings";
     return "Dashboard";
