@@ -68,9 +68,21 @@ export function ChatWidget() {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
 
   const isAdminRoute = pathname?.startsWith("/admin");
+  const isCustomerAccountRoute =
+    pathname === "/dashboard" ||
+    pathname?.startsWith("/dashboard/") ||
+    pathname === "/orders" ||
+    pathname?.startsWith("/orders/") ||
+    pathname === "/wishlist" ||
+    pathname?.startsWith("/wishlist/") ||
+    pathname === "/messages" ||
+    pathname?.startsWith("/messages/") ||
+    pathname === "/profile" ||
+    pathname?.startsWith("/profile/");
+  const hideWidget = isAdminRoute || isCustomerAccountRoute;
 
   useEffect(() => {
-    if (isAdminRoute) return;
+    if (hideWidget) return;
 
     const timer = window.setTimeout(() => {
       setTyping(true);
@@ -97,7 +109,7 @@ export function ChatWidget() {
     }, 8000);
 
     return () => window.clearTimeout(timer);
-  }, [isAdminRoute, open]);
+  }, [hideWidget, open]);
 
   useEffect(() => {
     if (open) {
@@ -122,7 +134,7 @@ export function ChatWidget() {
 
   const visibleQuickReplies = useMemo(() => showQuickReplies && messages.length <= 1, [messages.length, showQuickReplies]);
 
-  if (isAdminRoute) return null;
+  if (hideWidget) return null;
 
   return (
     <>

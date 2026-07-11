@@ -18,6 +18,7 @@ export type CustomerAddress = {
   label: string;
   line1: string;
   line2?: string;
+  area?: string;
   city: string;
   postalCode: string;
   isDefault?: boolean;

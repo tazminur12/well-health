@@ -1,9 +1,9 @@
 import { BlogPostForm } from "@/components/admin/blog-post-form";
 
 type AdminEditBlogPostPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 const dummyPosts = {
@@ -35,11 +35,12 @@ const dummyPosts = {
     metaDescription: "A beginner-friendly guide to selecting omega-3 supplements with confidence.",
     hasFeaturedImage: false,
   },
-} as const;
+};
 
-export default function AdminEditBlogPostPage({ params }: AdminEditBlogPostPageProps) {
+export default async function AdminEditBlogPostPage({ params }: AdminEditBlogPostPageProps) {
+  const { id } = await params;
   const fallback = dummyPosts["blog-1"];
-  const post = dummyPosts[params.id as keyof typeof dummyPosts] ?? fallback;
+  const post = dummyPosts[id as keyof typeof dummyPosts] ?? fallback;
 
   return (
     <div className="space-y-6">
@@ -48,7 +49,7 @@ export default function AdminEditBlogPostPage({ params }: AdminEditBlogPostPageP
         <p className="mt-1 text-sm text-neutral-500">Update article content, settings, and SEO metadata</p>
       </header>
 
-      <BlogPostForm initialData={post} mode="edit" />
+      <BlogPostForm initialData={{ ...post, tags: [...post.tags] }} mode="edit" />
     </div>
   );
 }

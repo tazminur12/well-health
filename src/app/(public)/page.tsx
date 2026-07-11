@@ -1,6 +1,5 @@
 import { HeroSlider } from "@/components/public/hero-slider";
 import { AboutSection } from "@/components/public/about-section";
-import { ContactSection } from "@/components/public/ContactSection";
 import { FeaturedProducts } from "@/components/public/featured-products";
 import { TrustBadges } from "@/components/public/trust-badges";
 import { ShopPreview } from "@/components/public/shop-preview";
@@ -13,7 +12,6 @@ export default function HomePage() {
       <AboutSection />
       <FeaturedProducts />
       <ShopPreview />
-      <ContactSection />
     </div>
   );
 }

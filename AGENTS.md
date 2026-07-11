@@ -113,10 +113,14 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 8. Admin Products page — table + Add/Edit drawer
 9. Admin Orders page — table + order detail drawer
 10. Admin Customers page — table + customer detail drawer
+11. Customer Dashboard layout + overview page (mobile-first: bottom tabs, slide-in drawer, desktop sidebar)
+12. Customer Profile page (summary card, accordion sections, address/password modals, danger zone)
+13. Customer Orders — list page (filter tabs, search, order cards, load more) + order detail page (vertical timeline, items, payment, contextual actions)
+14. Customer Wishlist page (2/3/4-col grid, always-filled heart w/ remove animation, out-of-stock state, sort toolbar, sticky bulk-add bar, undo snackbar)
 
 **Next up:**
 - Admin Chat Inbox (design)
-- Customer Dashboard layout + pages (design)
+- Customer Messages page (design)
 - Dedicated Shop page with filters, Product Detail page, Cart page (design)
 - Chat Widget — customer-facing (design)
 - Backend integration phase (Prisma schema, Supabase Auth, Cloudinary uploads, SSLCommerz payment, Supabase Realtime chat)

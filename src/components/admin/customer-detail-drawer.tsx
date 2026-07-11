@@ -137,6 +137,7 @@ export function CustomerDetailDrawer({ open, customer, onClose }: CustomerDetail
                     </div>
                     <p>{address.line1}</p>
                     {address.line2 ? <p>{address.line2}</p> : null}
+                    {address.area ? <p>{address.area}</p> : null}
                     <p>
                       {address.city} {address.postalCode}
                     </p>
