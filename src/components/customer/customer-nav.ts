@@ -2,7 +2,6 @@ import {
   Heart,
   LayoutDashboard,
   LogOut,
-  MessageCircle,
   ShoppingBag,
   User,
   type LucideIcon,
@@ -36,13 +35,6 @@ export const customerNavItems: CustomerNavItem[] = [
     icon: Heart,
   },
   {
-    href: "/messages",
-    label: "Messages",
-    shortLabel: "Chat",
-    icon: MessageCircle,
-    unreadCount: 2,
-  },
-  {
     href: "/profile",
     label: "Profile",
     shortLabel: "Profile",
@@ -56,17 +48,10 @@ export const customerLogoutItem: CustomerNavItem = {
   icon: LogOut,
 };
 
-export const dummyCustomer = {
-  name: "Ayesha Rahman",
-  email: "ayesha.rahman@email.com",
-  initials: "AR",
-};
-
 export function getCustomerPageTitle(pathname: string | null): string {
   if (!pathname) return "Dashboard";
   if (pathname.startsWith("/orders")) return "My Orders";
   if (pathname.startsWith("/wishlist")) return "Wishlist";
-  if (pathname.startsWith("/messages")) return "Messages";
   if (pathname.startsWith("/profile")) return "Profile";
   if (pathname.startsWith("/dashboard")) return "Dashboard";
   return "Account";

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   FlaskConical,
-  Heart,
   Minus,
   Plus,
   RotateCcw,
@@ -16,6 +15,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { WishlistButton } from "@/components/public/wishlist-button";
+import { showSuccess } from "@/lib/alerts";
 import { formatPrice } from "@/lib/format-price";
 import { getDisplayCompareAt } from "@/lib/products/public-mapper";
 import type { PublicProduct } from "@/lib/products/public-types";
@@ -29,7 +30,6 @@ type ProductInfoPanelProps = {
 export function ProductInfoPanel({ product }: ProductInfoPanelProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const compareAt = getDisplayCompareAt(product);
@@ -62,11 +62,27 @@ export function ProductInfoPanel({ product }: ProductInfoPanelProps) {
     );
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 1600);
+    void showSuccess(
+      "Added to cart",
+      quantity > 1
+        ? `${quantity} × ${product.name} added to your cart.`
+        : `${product.name} is ready in your cart.`
+    );
   }
 
   function handleBuyNow() {
-    handleAddToCart();
-    router.push("/cart");
+    if (!product.inStock) return;
+    addItem(
+      {
+        productId: product.id,
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+      },
+      quantity
+    );
+    router.push("/checkout");
   }
 
   async function handleShare() {
@@ -233,14 +249,20 @@ export function ProductInfoPanel({ product }: ProductInfoPanelProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            <WishlistButton
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-green-600 hover:text-brand-green-600 hover:shadow-sm"
-              onClick={() => setIsWishlisted((current) => !current)}
-              type="button"
-            >
-              <Heart className={cn("h-4.5 w-4.5", isWishlisted && "fill-current text-rose-500")} />
-            </button>
+              iconClassName="h-4.5 w-4.5"
+              product={{
+                productId: product.id,
+                slug: product.slug,
+                name: product.name,
+                category: product.category,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                imageTone: product.imageTone,
+                inStock: product.inStock,
+              }}
+            />
             <button
               aria-label="Share product"
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-green-600 hover:text-brand-green-600 hover:shadow-sm"

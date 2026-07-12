@@ -217,11 +217,34 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 2. Premium `/admin/messages` split inbox — filters, thread list, chat-style detail, notes, archive, mailto reply
 3. Creates admin notification on new inquiry; sidebar unread badge; permission `messages`
 
+**Completed (Backend — Customer Profile):**
+1. Prisma `Address` model + User profile fields (`dateOfBirth`, `gender`, `preferences`)
+2. Server actions: update profile, password, avatar, addresses CRUD, preferences, delete account
+3. `/profile` wired via TanStack Query; modals use portals (fix stacked/non-closing bug)
+4. Logout + live avatar upload; language & notification prefs persisted
+
+**Completed (Backend — Orders Management):**
+1. Admin orders CRUD actions: list, stats, get, update status/payment/notes, manual create (stock + coupon)
+2. Premium `/admin/orders` — live KPIs, filters, CSV export, status tabs
+3. Full-page detail `/admin/orders/[id]` — timeline, fulfill, payment, notes; cancel restores stock
+4. Manual `/admin/orders/new` — customer search, products, shipping zones, payment/status
+5. Dashboard recent orders wired to live data; permission `orders`
+
+**Completed (Backend — Payments):**
+1. SiteSetting `payment_settings` — enable COD / SSLCommerz / bKash + checkout instructions
+2. Premium `/admin/payments` — collected/unpaid KPIs, gateway cards, COD collection queue
+3. Syncs COD flag with store settings; Sales sidebar + permission `payments`
+
+**Completed (Backend — Customer Orders):**
+1. Customer order actions: list/get/cancel/stats (ownership by userId or email)
+2. Premium `/orders` + `/orders/[orderNumber]` — live data, filters, invoice PDF, reorder, cancel
+3. Dashboard stats + recent orders + wishlist preview wired to live data
+4. Guest checkout orders auto-linked when customer signs in with same email
+
 **Next up:**
-- Customer Messages page (design)
 - Chat Widget — live realtime (backend)
-- Checkout + payment (SSLCommerz / bKash)
-- Remaining backend (Cloudinary CDN, Orders/Address models, Realtime chat)
+- Payment gateways (SSLCommerz / bKash callbacks)
+- Remaining backend (Cloudinary CDN, Realtime chat)
 - Bilingual (EN/BN) toggle, SEO, deployment
 
 ---

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Package2, ShoppingCart } from "lucide-react";
+import { Package2, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
+import { WishlistButton } from "@/components/public/wishlist-button";
+import { showSuccess } from "@/lib/alerts";
 import { formatPrice } from "@/lib/format-price";
 import { getDisplayCompareAt } from "@/lib/products/public-mapper";
 import type { PublicProductCard } from "@/lib/products/public-types";
@@ -15,11 +17,20 @@ type ProductListItemProps = {
 };
 
 export function ProductListItem({ product }: ProductListItemProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const href = `/shop/${product.slug}`;
   const compareAt = getDisplayCompareAt(product);
+  const wishlistProduct = {
+    productId: product.id,
+    slug: product.slug,
+    name: product.name,
+    category: product.category,
+    price: product.price,
+    imageUrl: product.imageUrl,
+    imageTone: product.imageTone,
+    inStock: product.inStock,
+  };
 
   function handleAddToCart() {
     if (!product.inStock) return;
@@ -32,6 +43,7 @@ export function ProductListItem({ product }: ProductListItemProps) {
     });
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 1400);
+    void showSuccess("Added to cart", `${product.name} is ready in your cart.`);
   }
 
   return (
@@ -75,16 +87,10 @@ export function ProductListItem({ product }: ProductListItemProps) {
               </p>
             </div>
 
-            <button
-              aria-label={
-                isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`
-              }
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all duration-200 active:scale-90 hover:border-brand-green-600 hover:text-brand-green-600 sm:hidden"
-              onClick={() => setIsWishlisted((current) => !current)}
-              type="button"
-            >
-              <Heart className={cn("h-4 w-4", isWishlisted && "fill-current text-rose-500")} />
-            </button>
+            <WishlistButton
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all duration-200 hover:border-brand-green-600 hover:text-brand-green-600 sm:hidden"
+              product={wishlistProduct}
+            />
           </div>
 
           <div className="mt-3 flex flex-col gap-2.5 sm:mt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -127,16 +133,10 @@ export function ProductListItem({ product }: ProductListItemProps) {
                 <span className="hidden sm:inline">View Details</span>
               </Link>
 
-              <button
-                aria-label={
-                  isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`
-                }
+              <WishlistButton
                 className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-all duration-200 hover:border-brand-green-600 hover:text-brand-green-600 sm:inline-flex"
-                onClick={() => setIsWishlisted((current) => !current)}
-                type="button"
-              >
-                <Heart className={cn("h-4 w-4", isWishlisted && "fill-current text-rose-500")} />
-              </button>
+                product={wishlistProduct}
+              />
             </div>
           </div>
         </div>

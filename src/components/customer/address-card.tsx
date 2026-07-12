@@ -38,7 +38,7 @@ type AddressCardProps = {
 
 export function AddressCard({ address, onEdit, onDelete, onSetDefault }: AddressCardProps) {
   return (
-    <article className="rounded-lg border border-neutral-200 bg-white p-4">
+    <article className="rounded-xl border border-neutral-200 bg-neutral-50/40 p-4 transition-colors duration-200 hover:bg-white">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <p className="truncate font-semibold text-neutral-900">{address.fullName}</p>

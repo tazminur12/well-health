@@ -27,14 +27,14 @@ const contactFormSchema = z.object({
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
-    <label className="mb-2 block text-sm font-medium text-neutral-900" htmlFor={htmlFor}>
+    <label className="mb-2 block text-sm font-medium text-neutral-800" htmlFor={htmlFor}>
       {children}
     </label>
   );
 }
 
 const inputClassName =
-  "w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-all duration-200 placeholder:text-neutral-400 focus:border-brand-green-600 focus:ring-4 focus:ring-brand-green-100";
+  "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition-all duration-200 placeholder:text-neutral-400 focus:border-brand-green-600 focus:ring-4 focus:ring-brand-green-100";
 
 export function ContactFormCard() {
   const [submitting, setSubmitting] = useState(false);
@@ -72,26 +72,34 @@ export function ContactFormCard() {
   };
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-      <div className="mb-8 space-y-3">
-        <h2 className="font-heading text-2xl font-bold tracking-tight text-neutral-900">
-          Send Us a Message
+    <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#E8F5EE] via-white to-[#F0F7F3] p-7 shadow-[0_12px_36px_rgba(15,23,42,0.05)] ring-1 ring-neutral-200/70 sm:p-8 lg:p-9">
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0B4D3A] to-[#16875D]"
+      />
+
+      <div className="relative mb-8 space-y-3">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-green-600">
+          Contact form
+        </p>
+        <h2 className="font-heading text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+          Send us a message
         </h2>
-        <p className="text-sm leading-6 text-neutral-500">
-          Share your question, order concern, or product inquiry and we’ll get back to you.
+        <p className="text-sm leading-7 text-neutral-500">
+          Share your question, order concern, or product inquiry — we&apos;ll respond with care.
         </p>
       </div>
 
-      <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
+      <form className="relative space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <FieldLabel htmlFor="name">Full Name</FieldLabel>
+            <FieldLabel htmlFor="name">Full name</FieldLabel>
             <input className={inputClassName} id="name" placeholder="Your full name" {...register("name")} />
             {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
           </div>
 
           <div>
-            <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
+            <FieldLabel htmlFor="phone">Phone number</FieldLabel>
             <input className={inputClassName} id="phone" placeholder="01XXXXXXXXX" {...register("phone")} />
             {errors.phone ? <p className="mt-1 text-xs text-red-600">{errors.phone.message}</p> : null}
           </div>
@@ -139,7 +147,7 @@ export function ContactFormCard() {
         </div>
 
         <button
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-green-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md disabled:opacity-60"
           disabled={submitting}
           type="submit"
         >

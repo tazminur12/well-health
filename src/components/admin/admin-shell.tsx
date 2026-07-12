@@ -31,6 +31,7 @@ import {
   CircleUserRound,
   Leaf,
   UserRound,
+  Wallet,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -48,7 +49,9 @@ import {
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AdminNotificationBell } from "@/components/admin/admin-notification-bell";
 import { useAdminMessagesUnreadCount } from "@/hooks/use-admin-messages";
+import { useAdminOrders } from "@/hooks/use-admin-orders";
 import type { AuthUser } from "@/lib/auth/session";
+import { formatPrice } from "@/lib/format-price";
 import { cn } from "@/lib/utils";
 
 type AdminNavItem = {
@@ -90,6 +93,7 @@ const navGroups: AdminNavGroup[] = [
     label: "Sales",
     items: [
       { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+      { href: "/admin/payments", label: "Payments", icon: Wallet },
       { href: "/admin/customers", label: "Customers", icon: Users },
       { href: "/admin/coupons", label: "Coupons", icon: Ticket },
       { href: "/admin/shipping", label: "Shipping", icon: Truck },
@@ -207,7 +211,10 @@ export function AdminShell({
     if (pathname?.includes("/categories")) return "Categories";
     if (pathname?.includes("/inventory")) return "Inventory";
     if (pathname?.includes("/reviews")) return "Reviews";
+    if (pathname?.includes("/orders/new")) return "Add Order";
+    if (pathname?.match(/\/orders\/[^/]+$/)) return "Order Details";
     if (pathname?.includes("/orders")) return "Orders";
+    if (pathname?.includes("/payments")) return "Payments";
     if (pathname?.includes("/customers")) return "Customers";
     if (pathname?.includes("/coupons")) return "Coupons";
     if (pathname?.includes("/shipping")) return "Shipping";
@@ -769,20 +776,16 @@ export function SalesChart() {
 const statusClassMap: Record<string, string> = {
   PENDING: "bg-gold-accent/15 text-gold-accent",
   PAID: "bg-blue-100 text-blue-600",
-  SHIPPED: "bg-purple-100 text-purple-600",
+  PROCESSING: "bg-purple-100 text-purple-600",
+  SHIPPED: "bg-indigo-100 text-indigo-600",
   DELIVERED: "bg-brand-green-100 text-brand-green-600",
   CANCELLED: "bg-red-100 text-red-600",
 };
 
-const recentOrders = [
-  { orderNo: "WHT-2026-00001", customer: "Ayesha Rahman", date: "2026-07-09", amount: "৳ 12,500.00", status: "PENDING" },
-  { orderNo: "WHT-2026-00002", customer: "Tanvir Hasan", date: "2026-07-08", amount: "৳ 8,450.00", status: "PAID" },
-  { orderNo: "WHT-2026-00003", customer: "Nusrat Jahan", date: "2026-07-08", amount: "৳ 15,200.00", status: "SHIPPED" },
-  { orderNo: "WHT-2026-00004", customer: "Rakib Ahmed", date: "2026-07-07", amount: "৳ 5,900.00", status: "DELIVERED" },
-  { orderNo: "WHT-2026-00005", customer: "Mim Akter", date: "2026-07-06", amount: "৳ 9,300.00", status: "CANCELLED" },
-];
-
 export function RecentOrdersTable() {
+  const { data: orders = [], isLoading } = useAdminOrders();
+  const recent = orders.slice(0, 5);
+
   return (
     <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
       <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-6 py-5">
@@ -805,19 +808,51 @@ export function RecentOrdersTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 bg-white">
-            {recentOrders.map((order) => (
-              <tr key={order.orderNo} className="transition-colors duration-200 hover:bg-neutral-100">
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">{order.orderNo}</td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-700">{order.customer}</td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-500">{order.date}</td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-neutral-900">{order.amount}</td>
-                <td className="whitespace-nowrap px-6 py-4">
-                  <span className={cn("inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]", statusClassMap[order.status])}>
-                    {order.status}
-                  </span>
+            {isLoading ? (
+              <tr>
+                <td className="px-6 py-8 text-sm text-neutral-500" colSpan={5}>
+                  Loading orders…
                 </td>
               </tr>
-            ))}
+            ) : recent.length === 0 ? (
+              <tr>
+                <td className="px-6 py-8 text-sm text-neutral-500" colSpan={5}>
+                  No orders yet.
+                </td>
+              </tr>
+            ) : (
+              recent.map((order) => (
+                <tr key={order.id} className="transition-colors duration-200 hover:bg-neutral-100">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
+                    <Link
+                      className="hover:text-brand-green-700 hover:underline"
+                      href={`/admin/orders/${order.id}`}
+                    >
+                      {order.orderNumber}
+                    </Link>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-700">
+                    {order.customerName}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-500">
+                    {new Date(order.createdAt).toLocaleDateString("en-CA")}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-neutral-900">
+                    {formatPrice(order.total)}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]",
+                        statusClassMap[order.status] ?? "bg-neutral-100 text-neutral-600"
+                      )}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

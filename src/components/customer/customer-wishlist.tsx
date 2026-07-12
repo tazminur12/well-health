@@ -3,38 +3,54 @@
 import { ShoppingCart } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
-import { AuthToast } from "@/components/auth/auth-toast";
 import { BulkAddToCartBar } from "@/components/customer/bulk-add-to-cart-bar";
 import { EmptyWishlistState } from "@/components/customer/empty-wishlist-state";
 import { WishlistProductCard } from "@/components/customer/wishlist-product-card";
 import { WishlistToolbar } from "@/components/customer/wishlist-toolbar";
 import {
   sortWishlist,
-  wishlistItems as initialItems,
   type WishlistItem,
   type WishlistSort,
 } from "@/components/customer/wishlist-data";
+import { useWishlistAuth } from "@/components/public/wishlist-provider";
+import { showSuccess } from "@/lib/alerts";
+import { removeWishlistItemAction } from "@/lib/wishlist/actions";
+import { useCartStore } from "@/store/cart-store";
+import { useWishlistStore } from "@/store/wishlist-store";
 import { cn } from "@/lib/utils";
 
 export function CustomerWishlist() {
-  const [items, setItems] = useState<WishlistItem[]>(initialItems);
+  const isAuthenticated = useWishlistAuth();
+  const storeItems = useWishlistStore((state) => state.items);
+  const removeFromStore = useWishlistStore((state) => state.removeItem);
+  const addToStore = useWishlistStore((state) => state.addItem);
+  const addToCart = useCartStore((state) => state.addItem);
+
+  const items: WishlistItem[] = useMemo(
+    () =>
+      storeItems.map((item) => ({
+        id: item.productId,
+        slug: item.slug,
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        imageTone: item.imageTone,
+        inStock: item.inStock,
+        addedAt: item.addedAt,
+      })),
+    [storeItems]
+  );
+
   const [sort, setSort] = useState<WishlistSort>("recent");
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [lastRemoved, setLastRemoved] = useState<WishlistItem | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   const removeTimer = useRef<number | null>(null);
   const undoTimer = useRef<number | null>(null);
-  const toastTimer = useRef<number | null>(null);
 
   const sorted = useMemo(() => sortWishlist(items, sort), [items, sort]);
   const inStockCount = items.filter((item) => item.inStock).length;
-
-  const showToast = (message: string) => {
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = window.setTimeout(() => setToast(null), 2600);
-  };
 
   const handleRemove = (id: string) => {
     const target = items.find((item) => item.id === id);
@@ -44,7 +60,10 @@ export function CustomerWishlist() {
 
     if (removeTimer.current) window.clearTimeout(removeTimer.current);
     removeTimer.current = window.setTimeout(() => {
-      setItems((current) => current.filter((item) => item.id !== id));
+      removeFromStore(id);
+      if (isAuthenticated) {
+        void removeWishlistItemAction({ productId: id });
+      }
       setRemovingId(null);
       setLastRemoved(target);
 
@@ -55,17 +74,52 @@ export function CustomerWishlist() {
 
   const handleUndo = () => {
     if (!lastRemoved) return;
-    setItems((current) => [...current, lastRemoved]);
+    addToStore({
+      productId: lastRemoved.id,
+      slug: lastRemoved.slug,
+      name: lastRemoved.name,
+      category: lastRemoved.category,
+      price: lastRemoved.price,
+      imageUrl: lastRemoved.imageUrl,
+      imageTone: lastRemoved.imageTone,
+      inStock: lastRemoved.inStock,
+    });
+    if (isAuthenticated) {
+      void import("@/lib/wishlist/actions").then(({ toggleWishlistAction }) =>
+        toggleWishlistAction({ productId: lastRemoved.id })
+      );
+    }
     setLastRemoved(null);
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
   };
 
   const handleAddToCart = (item: WishlistItem) => {
-    showToast(`${item.name} added to cart`);
+    if (!item.inStock) return;
+    addToCart({
+      productId: item.id,
+      slug: item.slug,
+      name: item.name,
+      price: item.price,
+      imageUrl: item.imageUrl,
+    });
+    void showSuccess("Added to cart", `${item.name} is ready in your cart.`);
   };
 
   const handleAddAll = () => {
-    showToast(`${inStockCount} items added to cart`);
+    const inStock = items.filter((item) => item.inStock);
+    inStock.forEach((item) => {
+      addToCart({
+        productId: item.id,
+        slug: item.slug,
+        name: item.name,
+        price: item.price,
+        imageUrl: item.imageUrl,
+      });
+    });
+    void showSuccess(
+      "Added to cart",
+      `${inStock.length} ${inStock.length === 1 ? "item" : "items"} added to your cart.`
+    );
   };
 
   return (
@@ -114,7 +168,6 @@ export function CustomerWishlist() {
         </>
       )}
 
-      {/* Remove + Undo snackbar (mobile sits above the bottom tab bar) */}
       <div
         className={cn(
           "fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+0.75rem)] z-40 mx-auto flex w-[calc(100%-2rem)] max-w-sm items-center justify-between gap-3 rounded-xl bg-neutral-900 px-4 py-3 text-sm text-white shadow-lg transition-all duration-200 md:bottom-6",
@@ -131,8 +184,6 @@ export function CustomerWishlist() {
           Undo
         </button>
       </div>
-
-      <AuthToast message={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

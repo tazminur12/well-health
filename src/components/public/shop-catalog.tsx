@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ChevronLeft, ChevronRight, Filter, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -8,6 +7,7 @@ import { ActiveFilterPills } from "@/components/public/active-filter-pills";
 import { EmptyProductState } from "@/components/public/empty-product-state";
 import { FilterDrawer } from "@/components/public/filter-drawer";
 import { NewsletterStrip } from "@/components/public/newsletter-strip";
+import { PageHero } from "@/components/public/page-hero";
 import { ProductCard } from "@/components/public/product-card";
 import type { Availability, Category } from "@/components/public/product-filters";
 import { ProductFilters } from "@/components/public/product-filters";
@@ -181,47 +181,28 @@ export function ShopCatalog({
 
   return (
     <div className="bg-[#F7F8F9] text-neutral-900">
-      <section className="border-b border-brand-green-100/80 bg-[radial-gradient(circle_at_top_right,_rgba(22,135,93,0.12),_transparent_28%),linear-gradient(135deg,_#eef8f2_0%,_#ffffff_52%,_#f8fbf9_100%)] py-12 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="space-y-5">
-            <div className="text-sm text-neutral-500">
-              <Link className="transition-colors duration-200 hover:text-brand-green-600" href="/">
-                Home
-              </Link>
-              <span className="mx-2">/</span>
-              <span className="text-brand-green-600">Shop</span>
-            </div>
-
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl space-y-3">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-green-600">
-                  Catalog
-                </p>
-                <h1 className="font-heading text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
-                  Our Products
-                </h1>
-                <p className="text-base leading-7 text-neutral-500 sm:text-lg sm:leading-8">
-                  Clinically trusted supplements for everyday wellbeing — filter by category,
-                  availability, or price.
-                </p>
-              </div>
-
-              <label className="relative w-full max-w-md">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                <input
-                  className="w-full rounded-xl border border-neutral-200 bg-white py-3 pl-10 pr-4 text-sm text-neutral-900 shadow-sm outline-none transition-all duration-200 placeholder:text-neutral-400 focus:border-brand-green-600 focus:ring-4 focus:ring-brand-green-100"
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setActivePage(1);
-                  }}
-                  placeholder="Search products, categories, tags…"
-                  value={query}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        actions={
+          <label className="relative block w-full">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <input
+              className="w-full rounded-xl border border-white/30 bg-white/95 py-3.5 pl-10 pr-4 text-sm text-neutral-900 shadow-lg outline-none transition-all duration-200 placeholder:text-neutral-400 focus:border-white focus:ring-4 focus:ring-white/30"
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setActivePage(1);
+              }}
+              placeholder="Search products, categories, tags…"
+              type="search"
+              value={query}
+            />
+          </label>
+        }
+        crumbLabel="Shop"
+        description="Clinically trusted supplements for everyday wellbeing — filter by category, availability, or price."
+        eyebrow="Catalog"
+        title="Our Products"
+        tone="shop"
+      />
 
       <section className="py-10 sm:py-12 lg:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

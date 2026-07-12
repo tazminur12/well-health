@@ -67,6 +67,12 @@ export const ADMIN_PERMISSIONS = [
     href: "/admin/shipping",
   },
   {
+    key: "payments",
+    label: "Payments",
+    description: "COD, SSLCommerz, bKash and payment collection",
+    href: "/admin/payments",
+  },
+  {
     key: "marketing",
     label: "Marketing",
     description: "Email and SMS marketing campaigns",

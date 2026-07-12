@@ -29,7 +29,7 @@ export function ProfileSection({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border bg-white shadow-sm",
+        "overflow-hidden rounded-2xl border bg-white shadow-sm",
         tone === "danger" ? "border-red-200 bg-red-50/40" : "border-neutral-200"
       )}
     >

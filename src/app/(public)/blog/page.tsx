@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, ChevronRight } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 import { BlogPostCard } from "@/components/public/blog-post-card";
 import { CTABanner } from "@/components/public/cta-banner";
 import { NewsletterStrip } from "@/components/public/newsletter-strip";
+import { PageHero } from "@/components/public/page-hero";
 import { TrustBadges } from "@/components/public/trust-badges";
 import { BLOG_CATEGORIES } from "@/lib/blog/mapper";
 import { categoryToSlug, listPublicBlogPosts } from "@/lib/blog/public-queries";
@@ -36,36 +37,18 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   return (
     <div className="bg-white text-neutral-900">
-      <section className="bg-[radial-gradient(circle_at_top_right,_rgba(22,135,93,0.12),_transparent_28%),linear-gradient(135deg,_#eef8f2_0%,_#ffffff_46%,_#f8fbf9_100%)] py-14 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
-            <Link className="transition-colors duration-200 hover:text-brand-green-600" href="/">
-              Home
-            </Link>
-            <ChevronRight className="h-4 w-4" />
-            <span className="text-brand-green-600">Blog</span>
-          </nav>
-
-          <div className="mt-6 max-w-3xl space-y-4">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-brand-green-600">
-              Well Health Journal
-            </p>
-            <h1 className="font-heading text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
-              Practical wellness, clearly explained
-            </h1>
-            <p className="max-w-2xl text-lg leading-8 text-neutral-500">
-              Clinical-minded guides on eye care, nutrition, and everyday supplement literacy —
-              written for Bangladesh families who want trustworthy health information.
-            </p>
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-2">
+      <PageHero
+        crumbLabel="Blog"
+        description="Clinical-minded guides on eye care, nutrition, and everyday supplement literacy — written for Bangladesh families who want trustworthy health information."
+        eyebrow="Well Health Journal"
+        footer={
+          <div className="flex flex-wrap gap-2">
             <Link
               className={cn(
-                "rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200",
+                "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
                 !activeCategory
-                  ? "bg-brand-green-600 text-white shadow-sm"
-                  : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:text-brand-green-700"
+                  ? "bg-white text-brand-green-800 shadow-md"
+                  : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
               )}
               href="/blog"
             >
@@ -78,10 +61,10 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                 <Link
                   key={category}
                   className={cn(
-                    "rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200",
+                    "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
                     active
-                      ? "bg-brand-green-600 text-white shadow-sm"
-                      : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:text-brand-green-700"
+                      ? "bg-white text-brand-green-800 shadow-md"
+                      : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
                   )}
                   href={`/blog?category=${slug}`}
                 >
@@ -90,8 +73,10 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               );
             })}
           </div>
-        </div>
-      </section>
+        }
+        title="Practical wellness, clearly explained"
+        tone="blog"
+      />
 
       <TrustBadges />
 

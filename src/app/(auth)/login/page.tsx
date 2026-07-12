@@ -31,6 +31,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? undefined;
   const resetSuccess = searchParams.get("reset") === "success";
+  const deletedAccount = searchParams.get("deleted") === "1";
 
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -56,6 +57,14 @@ function LoginForm() {
       "Please sign in with your new password to continue."
     );
   }, [resetSuccess]);
+
+  useEffect(() => {
+    if (!deletedAccount) return;
+    void showAuthSuccess(
+      "Account deleted",
+      "Your Well Health account has been permanently removed."
+    );
+  }, [deletedAccount]);
 
   function fillDemo(email: string, password: string) {
     setValue("email", email, { shouldValidate: true, shouldDirty: true });

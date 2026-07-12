@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Heart, Package2, ShoppingCart } from "lucide-react";
 
-import { formatPrice, type WishlistItem } from "@/components/customer/wishlist-data";
+import { formatPrice } from "@/lib/format-price";
+import type { WishlistItem } from "@/components/customer/wishlist-data";
 import { cn } from "@/lib/utils";
 
 type WishlistProductCardProps = {
@@ -19,6 +20,8 @@ export function WishlistProductCard({
   onRemove,
   onAddToCart,
 }: WishlistProductCardProps) {
+  const href = `/shop/${item.slug}`;
+
   return (
     <article
       className={cn(
@@ -36,17 +39,28 @@ export function WishlistProductCard({
           <Heart className="h-4 w-4 fill-current" />
         </button>
 
-        <Link className="block" href={`/shop/${item.id}`}>
-          <div className={cn("flex aspect-square items-center justify-center rounded-lg", item.imageTone)}>
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200">
-              <Package2 className="h-7 w-7 text-brand-green-600" />
-            </span>
+        <Link className="block" href={href}>
+          <div
+            className={cn(
+              "relative flex aspect-square items-center justify-center overflow-hidden rounded-lg",
+              item.imageTone ||
+                "bg-[radial-gradient(circle_at_top,_rgba(22,135,93,0.1),_transparent_50%),linear-gradient(160deg,_#f8faf9_0%,_#eef2f0_100%)]"
+            )}
+          >
+            {item.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img alt={item.name} className="h-full w-full object-cover" src={item.imageUrl} />
+            ) : (
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-neutral-200">
+                <Package2 className="h-7 w-7 text-brand-green-600" />
+              </span>
+            )}
           </div>
         </Link>
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <Link className="block" href={`/shop/${item.id}`}>
+        <Link className="block" href={href}>
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-neutral-900">
             {item.name}
           </h3>

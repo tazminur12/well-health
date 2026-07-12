@@ -6,66 +6,89 @@ import {
   ChevronRight,
   Globe,
   History,
+  Loader2,
   Lock,
   LogOut,
+  MapPin,
   MessageSquare,
   Pencil,
   Plus,
   ShieldCheck,
-  Smartphone,
   User,
-  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition, type ChangeEvent } from "react";
 
-import { AuthToast } from "@/components/auth/auth-toast";
+import { LogoutButton } from "@/components/auth/logout-button";
 import {
   AddressCard,
   type CustomerAddress,
 } from "@/components/customer/address-card";
 import { AddAddressModal } from "@/components/customer/add-address-modal";
 import { ChangePasswordModal } from "@/components/customer/change-password-modal";
+import { DeleteAccountModal } from "@/components/customer/delete-account-modal";
 import { ProfileSection } from "@/components/customer/profile-section";
 import { ProfileSummaryCard } from "@/components/customer/profile-summary-card";
-import { dummyCustomer } from "@/components/customer/customer-nav";
+import {
+  useCustomerProfile,
+  useCustomerProfileMutations,
+} from "@/hooks/use-customer-profile";
+import { showError as showAlertError, showInfo, showSuccess } from "@/lib/alerts";
+import type { CustomerPreferences } from "@/lib/profile/actions";
 import { cn } from "@/lib/utils";
 
-type PersonalInfo = {
+type GenderValue = "FEMALE" | "MALE" | "OTHER" | "UNSPECIFIED";
+
+type PersonalDraft = {
   fullName: string;
-  email: string;
   phone: string;
   dateOfBirth: string;
-  gender: string;
+  gender: GenderValue;
 };
 
-const initialInfo: PersonalInfo = {
-  fullName: dummyCustomer.name,
-  email: dummyCustomer.email,
-  phone: "1712345678",
-  dateOfBirth: "1996-04-12",
-  gender: "Female",
-};
+function getInitials(name: string | null | undefined, email: string) {
+  const trimmed = name?.trim();
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+    }
+    return trimmed.slice(0, 2).toUpperCase();
+  }
+  return email.slice(0, 2).toUpperCase();
+}
 
-const initialAddresses: CustomerAddress[] = [
-  {
-    id: "addr-1",
-    fullName: "Ayesha Rahman",
-    phone: "1712345678",
-    district: "Dhaka",
-    area: "Dhanmondi",
-    details: "House 42, Road 8, Block C",
-    isDefault: true,
-  },
-  {
-    id: "addr-2",
-    fullName: "Ayesha Rahman",
-    phone: "1898765432",
-    district: "Chattogram",
-    area: "Panchlaish",
-    details: "Flat 5B, Green Tower, Nasirabad",
-    isDefault: false,
-  },
-];
+function formatJoined(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function toLocalPhoneDigits(phone?: string | null) {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("880") && digits.length >= 13) return digits.slice(3);
+  if (digits.startsWith("0") && digits.length >= 11) return digits.slice(1);
+  return digits;
+}
+
+function formatPhoneDisplay(phone?: string | null) {
+  const local = toLocalPhoneDigits(phone);
+  return local ? `+880 ${local}` : "—";
+}
+
+function genderLabel(gender: GenderValue) {
+  switch (gender) {
+    case "FEMALE":
+      return "Female";
+    case "MALE":
+      return "Male";
+    case "OTHER":
+      return "Other";
+    default:
+      return "—";
+  }
+}
 
 function ToggleSwitch({
   checked,
@@ -131,7 +154,7 @@ function SettingRow({
   if (onClick) {
     return (
       <button
-        className="flex min-h-14 w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-200 active:bg-neutral-100"
+        className="flex min-h-14 w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-200 hover:bg-neutral-50 active:bg-neutral-100"
         onClick={onClick}
         type="button"
       >
@@ -145,89 +168,176 @@ function SettingRow({
 
 function ReadonlyField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-b border-neutral-100 py-3">
+    <div className="border-b border-neutral-100 py-3 last:border-b-0">
       <p className="text-xs text-neutral-500">{label}</p>
       <p className="mt-0.5 text-sm font-medium text-neutral-900">{value || "—"}</p>
     </div>
   );
 }
 
+type ModalKind = "address" | "password" | "delete" | null;
+
 export function CustomerProfile() {
-  const [toast, setToast] = useState<string | null>(null);
+  const { data: profile, isLoading, isError, error, refetch } = useCustomerProfile();
+  const {
+    updateProfile,
+    updatePreferences,
+    changePassword,
+    createAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
+    uploadAvatar,
+    deleteAccount,
+  } = useCustomerProfileMutations();
 
-  const [info, setInfo] = useState<PersonalInfo>(initialInfo);
-  const [draft, setDraft] = useState<PersonalInfo>(initialInfo);
   const [editing, setEditing] = useState(false);
-
-  const [addresses, setAddresses] = useState<CustomerAddress[]>(initialAddresses);
-  const [addressModalOpen, setAddressModalOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
-
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [twoFactor, setTwoFactor] = useState(false);
-
-  const [language, setLanguage] = useState<"en" | "bn">("en");
-  const [notifications, setNotifications] = useState({
-    orderUpdates: true,
-    promotions: false,
-    newsletter: true,
-    sms: true,
+  const [draft, setDraft] = useState<PersonalDraft>({
+    fullName: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "UNSPECIFIED",
   });
+  const [activeModal, setActiveModal] = useState<ModalKind>(null);
+  const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
+  const [prefsSaving, setPrefsSaving] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState("");
+  useEffect(() => {
+    if (!profile) return;
+    setDraft({
+      fullName: profile.name ?? "",
+      phone: toLocalPhoneDigits(profile.phone),
+      dateOfBirth: profile.dateOfBirth ?? "",
+      gender: profile.gender,
+    });
+  }, [profile]);
 
   const showToast = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 2600);
+    void showSuccess("Success", message);
+  };
+
+  const showErrorToast = (message: string) => {
+    void showAlertError("Something went wrong", message);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setEditingAddress(null);
   };
 
   const fieldClass =
-    "h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-800 outline-none transition-all duration-200 focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-100";
+    "h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-800 outline-none transition-all duration-200 focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20";
 
   const startEdit = () => {
-    setDraft(info);
+    if (!profile) return;
+    setDraft({
+      fullName: profile.name ?? "",
+      phone: toLocalPhoneDigits(profile.phone),
+      dateOfBirth: profile.dateOfBirth ?? "",
+      gender: profile.gender,
+    });
     setEditing(true);
   };
 
   const saveInfo = () => {
-    setInfo(draft);
-    setEditing(false);
-    showToast("Profile updated successfully");
-  };
-
-  const saveAddress = (address: CustomerAddress) => {
-    setAddresses((current) => {
-      const normalized = address.isDefault
-        ? current.map((a) => ({ ...a, isDefault: false }))
-        : current;
-      const exists = normalized.some((a) => a.id === address.id);
-      const next = exists
-        ? normalized.map((a) => (a.id === address.id ? address : a))
-        : [...normalized, address];
-      return next.some((a) => a.isDefault)
-        ? next
-        : next.map((a, index) => (index === 0 ? { ...a, isDefault: true } : a));
+    startTransition(async () => {
+      try {
+        await updateProfile.mutateAsync({
+          name: draft.fullName,
+          phone: draft.phone,
+          dateOfBirth: draft.dateOfBirth,
+          gender: draft.gender,
+        });
+        setEditing(false);
+        showToast("Profile updated successfully");
+        await refetch();
+      } catch (err) {
+        showErrorToast(err instanceof Error ? err.message : "Could not update profile");
+      }
     });
-    setAddressModalOpen(false);
-    setEditingAddress(null);
-    showToast("Address saved successfully");
   };
 
-  const deleteAddress = (id: string) => {
-    setAddresses((current) => {
-      const next = current.filter((a) => a.id !== id);
-      return next.some((a) => a.isDefault) || next.length === 0
-        ? next
-        : next.map((a, index) => (index === 0 ? { ...a, isDefault: true } : a));
-    });
-    showToast("Address removed");
+  const savePreference = async (next: CustomerPreferences) => {
+    setPrefsSaving(true);
+    try {
+      await updatePreferences.mutateAsync(next);
+      showToast("Preferences saved");
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : "Could not save preferences");
+    } finally {
+      setPrefsSaving(false);
+    }
   };
 
-  const setDefaultAddress = (id: string) => {
-    setAddresses((current) => current.map((a) => ({ ...a, isDefault: a.id === id })));
-    showToast("Default address updated");
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      await uploadAvatar.mutateAsync(file);
+      showToast("Profile photo updated");
+      await refetch();
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : "Upload failed");
+    }
   };
+
+  const saveAddress = async (
+    address: Omit<CustomerAddress, "id"> & { id?: string }
+  ) => {
+    try {
+      const payload = {
+        fullName: address.fullName,
+        phone: address.phone,
+        district: address.district,
+        area: address.area,
+        details: address.details,
+        isDefault: address.isDefault,
+      };
+      if (address.id) {
+        await updateAddress.mutateAsync({ id: address.id, input: payload });
+      } else {
+        await createAddress.mutateAsync(payload);
+      }
+      closeModal();
+      showToast("Address saved successfully");
+      await refetch();
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : "Could not save address");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-sm text-neutral-500">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-green-600" />
+        Loading your profile…
+      </div>
+    );
+  }
+
+  if (isError || !profile) {
+    return (
+      <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 text-center">
+        <p className="text-sm text-neutral-600">
+          {error instanceof Error ? error.message : "Could not load profile."}
+        </p>
+        <button
+          className="min-h-10 rounded-xl bg-brand-green-600 px-4 text-sm font-semibold text-white hover:bg-brand-green-900"
+          onClick={() => refetch()}
+          type="button"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  const preferences = profile.preferences;
+  const addressBusy =
+    createAddress.isPending || updateAddress.isPending || deleteAddress.isPending;
 
   return (
     <div className="space-y-6">
@@ -236,12 +346,22 @@ export function CustomerProfile() {
         <p className="mt-1 text-sm text-neutral-500">Manage your account information</p>
       </header>
 
+      <input
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleAvatarChange}
+        ref={fileInputRef}
+        type="file"
+      />
+
       <ProfileSummaryCard
-        email={info.email}
-        initials={dummyCustomer.initials}
-        memberSince="Jan 2026"
-        name={info.fullName}
-        onChangePhoto={() => showToast("Photo upload coming soon")}
+        avatarUrl={profile.avatarUrl}
+        email={profile.email}
+        initials={getInitials(profile.name, profile.email)}
+        memberSince={formatJoined(profile.createdAt)}
+        name={profile.name?.trim() || "Well Health Member"}
+        onChangePhoto={() => fileInputRef.current?.click()}
+        uploading={uploadAvatar.isPending}
         verified
       />
 
@@ -251,7 +371,7 @@ export function CustomerProfile() {
           !editing ? (
             <button
               aria-label="Edit personal information"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50 hover:text-brand-green-600"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-neutral-500 transition-colors duration-200 hover:bg-neutral-50 hover:text-brand-green-600"
               onClick={startEdit}
               type="button"
             >
@@ -280,28 +400,20 @@ export function CustomerProfile() {
               <label className="text-sm font-medium text-neutral-700" htmlFor="pi-email">
                 Email
               </label>
-              <div className="flex items-center gap-2">
-                <input
-                  className={cn(fieldClass, "flex-1 cursor-not-allowed bg-neutral-50 text-neutral-500")}
-                  disabled
-                  id="pi-email"
-                  value={draft.email}
-                />
-                <button
-                  className="min-h-11 shrink-0 rounded-lg border border-brand-green-600 px-3 text-xs font-semibold text-brand-green-600 transition-colors duration-200 active:bg-brand-green-100 hover:bg-brand-green-100"
-                  onClick={() => showToast("Change email flow coming soon")}
-                  type="button"
-                >
-                  Change
-                </button>
-              </div>
+              <input
+                className={cn(fieldClass, "cursor-not-allowed bg-neutral-50 text-neutral-500")}
+                disabled
+                id="pi-email"
+                value={profile.email}
+              />
+              <p className="text-xs text-neutral-400">Email is managed by your sign-in account.</p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-neutral-700" htmlFor="pi-phone">
                 Phone Number
               </label>
-              <div className="flex h-11 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 transition-all duration-200 focus-within:border-brand-green-600 focus-within:ring-2 focus-within:ring-brand-green-100">
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 transition-all duration-200 focus-within:border-brand-green-600 focus-within:ring-2 focus-within:ring-brand-green-600/20">
                 <span className="inline-flex h-6 items-center rounded-md bg-neutral-100 px-2 text-xs font-medium text-neutral-600">
                   +880
                 </span>
@@ -335,49 +447,51 @@ export function CustomerProfile() {
               <select
                 className={fieldClass}
                 id="pi-gender"
-                onChange={(event) => setDraft((d) => ({ ...d, gender: event.target.value }))}
+                onChange={(event) =>
+                  setDraft((d) => ({ ...d, gender: event.target.value as GenderValue }))
+                }
                 value={draft.gender}
               >
-                <option value="">Prefer not to say</option>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Other">Other</option>
+                <option value="UNSPECIFIED">Prefer not to say</option>
+                <option value="FEMALE">Female</option>
+                <option value="MALE">Male</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
 
             <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
               <button
-                className="min-h-11 rounded-lg border border-neutral-300 px-5 text-sm font-semibold text-neutral-700 transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50"
+                className="min-h-11 rounded-xl border border-neutral-300 px-5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+                disabled={isPending}
                 onClick={() => setEditing(false)}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="min-h-11 rounded-lg bg-brand-green-600 px-5 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900 hover:bg-brand-green-900"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-5 text-sm font-semibold text-white hover:bg-brand-green-900 disabled:opacity-50"
+                disabled={isPending || draft.fullName.trim().length < 2}
                 onClick={saveInfo}
                 type="button"
               >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Save Changes
               </button>
             </div>
           </div>
         ) : (
           <div>
-            <ReadonlyField label="Full Name" value={info.fullName} />
+            <ReadonlyField label="Full Name" value={profile.name ?? ""} />
             <div className="border-b border-neutral-100 py-3">
               <p className="text-xs text-neutral-500">Email</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-neutral-900">
-                {info.email}
+                {profile.email}
                 <ShieldCheck className="h-4 w-4 text-brand-green-600" />
               </p>
             </div>
-            <ReadonlyField label="Phone Number" value={`+880 ${info.phone}`} />
-            <ReadonlyField label="Date of Birth" value={info.dateOfBirth} />
-            <div className="py-3">
-              <p className="text-xs text-neutral-500">Gender</p>
-              <p className="mt-0.5 text-sm font-medium text-neutral-900">{info.gender || "—"}</p>
-            </div>
+            <ReadonlyField label="Phone Number" value={formatPhoneDisplay(profile.phone)} />
+            <ReadonlyField label="Date of Birth" value={profile.dateOfBirth ?? ""} />
+            <ReadonlyField label="Gender" value={genderLabel(profile.gender)} />
           </div>
         )}
       </ProfileSection>
@@ -386,10 +500,10 @@ export function CustomerProfile() {
         defaultOpen
         headerAction={
           <button
-            className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-brand-green-600 px-3 text-xs font-semibold text-brand-green-600 transition-colors duration-200 active:bg-brand-green-100 hover:bg-brand-green-100"
+            className="inline-flex min-h-10 items-center gap-1 rounded-xl border border-brand-green-600 px-3 text-xs font-semibold text-brand-green-600 transition-colors duration-200 hover:bg-brand-green-50"
             onClick={() => {
               setEditingAddress(null);
-              setAddressModalOpen(true);
+              setActiveModal("address");
             }}
             type="button"
           >
@@ -397,23 +511,45 @@ export function CustomerProfile() {
             Add New
           </button>
         }
-        icon={Smartphone}
+        icon={MapPin}
         title="Saved Addresses"
       >
         <div className="flex flex-col gap-3">
-          {addresses.length === 0 ? (
-            <p className="py-4 text-center text-sm text-neutral-500">No saved addresses yet.</p>
+          {profile.addresses.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50/60 px-4 py-8 text-center">
+              <MapPin className="mx-auto h-8 w-8 text-neutral-300" />
+              <p className="mt-2 text-sm font-medium text-neutral-700">No saved addresses yet</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Add a delivery address for faster checkout.
+              </p>
+            </div>
           ) : (
-            addresses.map((address) => (
+            profile.addresses.map((address) => (
               <AddressCard
                 address={address}
                 key={address.id}
-                onDelete={deleteAddress}
+                onDelete={async (id) => {
+                  try {
+                    await deleteAddress.mutateAsync(id);
+                    showToast("Address removed");
+                    await refetch();
+                  } catch (err) {
+                    showErrorToast(err instanceof Error ? err.message : "Could not delete address");
+                  }
+                }}
                 onEdit={(a) => {
                   setEditingAddress(a);
-                  setAddressModalOpen(true);
+                  setActiveModal("address");
                 }}
-                onSetDefault={setDefaultAddress}
+                onSetDefault={async (id) => {
+                  try {
+                    await setDefaultAddress.mutateAsync(id);
+                    showToast("Default address updated");
+                    await refetch();
+                  } catch (err) {
+                    showErrorToast(err instanceof Error ? err.message : "Could not update default");
+                  }
+                }}
               />
             ))
           )}
@@ -425,7 +561,7 @@ export function CustomerProfile() {
           <SettingRow
             icon={Lock}
             label="Change Password"
-            onClick={() => setPasswordModalOpen(true)}
+            onClick={() => setActiveModal("password")}
             right={<ChevronRight className="h-5 w-5 text-neutral-400" />}
           />
           <SettingRow
@@ -434,18 +570,18 @@ export function CustomerProfile() {
             label="Two-Factor Authentication"
             right={
               <ToggleSwitch
-                checked={twoFactor}
+                checked={false}
                 disabled
                 label="Two-factor authentication"
-                onChange={setTwoFactor}
+                onChange={() => undefined}
               />
             }
           />
           <SettingRow
-            description="3 recent sessions"
+            description="Coming soon"
             icon={History}
             label="Login Activity"
-            onClick={() => showToast("Login activity coming soon")}
+            onClick={() => void showInfo("Coming soon", "Login activity will be available shortly.")}
             right={<ChevronRight className="h-5 w-5 text-neutral-400" />}
           />
         </div>
@@ -457,31 +593,25 @@ export function CustomerProfile() {
             icon={Globe}
             label="Language"
             right={
-              <div className="inline-flex rounded-lg border border-neutral-200 p-0.5">
-                <button
-                  className={cn(
-                    "min-h-9 rounded-md px-3 text-xs font-semibold transition-colors duration-200",
-                    language === "en"
-                      ? "bg-brand-green-600 text-white"
-                      : "text-neutral-600 active:bg-neutral-100"
-                  )}
-                  onClick={() => setLanguage("en")}
-                  type="button"
-                >
-                  EN
-                </button>
-                <button
-                  className={cn(
-                    "min-h-9 rounded-md px-3 text-xs font-semibold transition-colors duration-200",
-                    language === "bn"
-                      ? "bg-brand-green-600 text-white"
-                      : "text-neutral-600 active:bg-neutral-100"
-                  )}
-                  onClick={() => setLanguage("bn")}
-                  type="button"
-                >
-                  বাং
-                </button>
+              <div className="inline-flex rounded-xl border border-neutral-200 p-0.5">
+                {(["en", "bn"] as const).map((lang) => (
+                  <button
+                    className={cn(
+                      "min-h-9 rounded-lg px-3 text-xs font-semibold transition-colors duration-200 disabled:opacity-50",
+                      preferences.language === lang
+                        ? "bg-brand-green-600 text-white"
+                        : "text-neutral-600 hover:bg-neutral-50"
+                    )}
+                    disabled={prefsSaving}
+                    key={lang}
+                    onClick={() =>
+                      savePreference({ ...preferences, language: lang })
+                    }
+                    type="button"
+                  >
+                    {lang === "en" ? "EN" : "বাং"}
+                  </button>
+                ))}
               </div>
             }
           />
@@ -491,9 +621,12 @@ export function CustomerProfile() {
             label="Order Updates"
             right={
               <ToggleSwitch
-                checked={notifications.orderUpdates}
+                checked={preferences.orderUpdates}
+                disabled={prefsSaving}
                 label="Order update emails"
-                onChange={(value) => setNotifications((n) => ({ ...n, orderUpdates: value }))}
+                onChange={(value) =>
+                  savePreference({ ...preferences, orderUpdates: value })
+                }
               />
             }
           />
@@ -503,9 +636,12 @@ export function CustomerProfile() {
             label="Promotions"
             right={
               <ToggleSwitch
-                checked={notifications.promotions}
+                checked={preferences.promotions}
+                disabled={prefsSaving}
                 label="Promotion emails"
-                onChange={(value) => setNotifications((n) => ({ ...n, promotions: value }))}
+                onChange={(value) =>
+                  savePreference({ ...preferences, promotions: value })
+                }
               />
             }
           />
@@ -515,9 +651,12 @@ export function CustomerProfile() {
             label="Newsletter"
             right={
               <ToggleSwitch
-                checked={notifications.newsletter}
+                checked={preferences.newsletter}
+                disabled={prefsSaving}
                 label="Newsletter emails"
-                onChange={(value) => setNotifications((n) => ({ ...n, newsletter: value }))}
+                onChange={(value) =>
+                  savePreference({ ...preferences, newsletter: value })
+                }
               />
             }
           />
@@ -527,9 +666,10 @@ export function CustomerProfile() {
             label="SMS Notifications"
             right={
               <ToggleSwitch
-                checked={notifications.sms}
+                checked={preferences.sms}
+                disabled={prefsSaving}
                 label="SMS notifications"
-                onChange={(value) => setNotifications((n) => ({ ...n, sms: value }))}
+                onChange={(value) => savePreference({ ...preferences, sms: value })}
               />
             }
           />
@@ -541,117 +681,52 @@ export function CustomerProfile() {
           description="Permanently remove your account and data"
           icon={AlertTriangle}
           label="Delete My Account"
-          onClick={() => {
-            setDeleteConfirm("");
-            setDeleteOpen(true);
-          }}
+          onClick={() => setActiveModal("delete")}
           right={<ChevronRight className="h-5 w-5 text-red-400" />}
         />
       </ProfileSection>
 
-      <button
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-600 px-4 py-3 text-sm font-semibold text-red-600 transition-colors duration-200 active:bg-red-50 hover:bg-red-50"
-        onClick={() => showToast("Logging out…")}
-        type="button"
-      >
+      <LogoutButton className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-600 px-4 py-3 text-sm font-semibold text-red-600 transition-colors duration-200 hover:bg-red-50">
         <LogOut className="h-4 w-4" />
         Log Out
-      </button>
+      </LogoutButton>
 
       <AddAddressModal
         address={editingAddress}
-        onClose={() => {
-          setAddressModalOpen(false);
-          setEditingAddress(null);
-        }}
+        isSaving={addressBusy}
+        onClose={closeModal}
         onSave={saveAddress}
-        open={addressModalOpen}
+        open={activeModal === "address"}
       />
 
       <ChangePasswordModal
-        onClose={() => setPasswordModalOpen(false)}
-        onSave={() => {
-          setPasswordModalOpen(false);
-          showToast("Password updated successfully");
+        isSaving={changePassword.isPending}
+        onClose={closeModal}
+        onSave={async (values) => {
+          try {
+            await changePassword.mutateAsync(values);
+            closeModal();
+            showToast("Password updated successfully");
+          } catch (err) {
+            showErrorToast(err instanceof Error ? err.message : "Could not update password");
+          }
         }}
-        open={passwordModalOpen}
+        open={activeModal === "password"}
       />
 
-      {/* Delete account confirmation */}
-      <div
-        aria-hidden={!deleteOpen}
-        className={cn("fixed inset-0 z-[60]", deleteOpen ? "pointer-events-auto" : "pointer-events-none")}
-      >
-        <button
-          aria-label="Close"
-          className={cn(
-            "absolute inset-0 bg-neutral-950/40 transition-opacity duration-200",
-            deleteOpen ? "opacity-100" : "opacity-0"
-          )}
-          onClick={() => setDeleteOpen(false)}
-          type="button"
-        />
-        <div className="absolute inset-0 flex items-end justify-center sm:items-center">
-          <div
-            className={cn(
-              "w-full rounded-t-2xl bg-white shadow-xl transition-transform duration-200 sm:max-w-md sm:rounded-2xl",
-              deleteOpen ? "translate-y-0" : "translate-y-full sm:translate-y-4"
-            )}
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
-              <h3 className="flex items-center gap-2 font-heading text-base font-bold text-red-700">
-                <AlertTriangle className="h-5 w-5" />
-                Delete Account
-              </h3>
-              <button
-                aria-label="Close"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50"
-                onClick={() => setDeleteOpen(false)}
-                type="button"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4 px-5 py-4">
-              <p className="text-sm text-neutral-600">
-                This action is permanent. All your orders, addresses, and wishlist items will be
-                removed and cannot be recovered. Type <span className="font-semibold text-neutral-900">DELETE</span> to
-                confirm.
-              </p>
-              <input
-                className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-800 outline-none transition-all duration-200 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                onChange={(event) => setDeleteConfirm(event.target.value)}
-                placeholder="Type DELETE"
-                value={deleteConfirm}
-              />
-            </div>
-
-            <div className="flex flex-col-reverse gap-3 border-t border-neutral-200 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
-              <button
-                className="min-h-11 rounded-lg border border-neutral-300 px-5 text-sm font-semibold text-neutral-700 transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50"
-                onClick={() => setDeleteOpen(false)}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="min-h-11 rounded-lg bg-red-600 px-5 text-sm font-semibold text-white transition-colors duration-200 active:bg-red-700 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={deleteConfirm !== "DELETE"}
-                onClick={() => {
-                  setDeleteOpen(false);
-                  showToast("Account deletion requested");
-                }}
-                type="button"
-              >
-                Delete Account
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <AuthToast message={toast} onClose={() => setToast(null)} />
+      <DeleteAccountModal
+        isSaving={deleteAccount.isPending}
+        onClose={closeModal}
+        onConfirm={async (confirmation) => {
+          try {
+            await deleteAccount.mutateAsync({ confirmation });
+            window.location.href = "/login?deleted=1";
+          } catch (err) {
+            showErrorToast(err instanceof Error ? err.message : "Could not delete account");
+          }
+        }}
+        open={activeModal === "delete"}
+      />
     </div>
   );
 }

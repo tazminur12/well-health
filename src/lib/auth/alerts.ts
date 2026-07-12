@@ -1,68 +1,29 @@
 "use client";
 
-import Swal from "sweetalert2";
-
-import "sweetalert2/dist/sweetalert2.min.css";
-
-const base = {
-  buttonsStyling: false,
-  customClass: {
-    popup: "auth-swal-popup",
-    title: "auth-swal-title",
-    htmlContainer: "auth-swal-html",
-    confirmButton: "auth-swal-confirm",
-    cancelButton: "auth-swal-cancel",
-    actions: "auth-swal-actions",
-    icon: "auth-swal-icon",
-  },
-};
+import {
+  closeAlert,
+  showError,
+  showInfo,
+  showLoading,
+  showSuccess,
+} from "@/lib/alerts";
 
 export async function showAuthSuccess(title: string, text: string) {
-  return Swal.fire({
-    ...base,
-    icon: "success",
-    title,
-    text,
-    confirmButtonText: "Continue",
-    timer: 2600,
-    timerProgressBar: true,
-  });
+  return showSuccess(title, text);
 }
 
 export async function showAuthError(title: string, text: string) {
-  return Swal.fire({
-    ...base,
-    icon: "error",
-    title,
-    text,
-    confirmButtonText: "Try again",
-  });
+  return showError(title, text);
 }
 
 export async function showAuthInfo(title: string, text: string) {
-  return Swal.fire({
-    ...base,
-    icon: "info",
-    title,
-    text,
-    confirmButtonText: "Got it",
-  });
+  return showInfo(title, text);
 }
 
 export async function showAuthLoading(title = "Please wait...") {
-  return Swal.fire({
-    ...base,
-    title,
-    text: "Securely processing your request",
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    showConfirmButton: false,
-    didOpen: () => {
-      Swal.showLoading();
-    },
-  });
+  return showLoading(title);
 }
 
 export function closeAuthAlert() {
-  Swal.close();
+  closeAlert();
 }

@@ -4,9 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const protectedCustomerRoutes = [
   "/dashboard",
   "/orders",
-  "/wishlist",
   "/profile",
-  "/messages",
 ];
 
 const authRoutes = ["/login", "/register", "/forgot-password"];

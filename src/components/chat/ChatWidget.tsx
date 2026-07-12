@@ -75,8 +75,6 @@ export function ChatWidget() {
     pathname?.startsWith("/orders/") ||
     pathname === "/wishlist" ||
     pathname?.startsWith("/wishlist/") ||
-    pathname === "/messages" ||
-    pathname?.startsWith("/messages/") ||
     pathname === "/profile" ||
     pathname?.startsWith("/profile/");
   const hideWidget = isAdminRoute || isCustomerAccountRoute;

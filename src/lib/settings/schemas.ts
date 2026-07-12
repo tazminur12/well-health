@@ -86,6 +86,17 @@ export function formatStoreAddress(settings: StoreSettings) {
     .join(", ");
 }
 
+/** Directions link for Google Maps. */
+export function googleMapsDirectionsUrl(settings: StoreSettings) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formatStoreAddress(settings))}`;
+}
+
+/** Embeddable Google Maps iframe src (no API key required). */
+export function googleMapsEmbedUrl(settings: StoreSettings) {
+  const query = encodeURIComponent(formatStoreAddress(settings));
+  return `https://maps.google.com/maps?q=${query}&z=16&output=embed`;
+}
+
 export function phoneTelHref(phone: string) {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
 }

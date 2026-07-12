@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlignJustify,
   BookOpen,
+  Heart,
   Home,
   Info,
   LayoutDashboard,
@@ -26,6 +27,7 @@ import {
 } from "@/components/public/nav-user-menu";
 import { logoutAction } from "@/lib/auth/actions";
 import { useCartStore } from "@/store/cart-store";
+import { useWishlistStore } from "@/store/wishlist-store";
 import { cn } from "@/lib/utils";
 
 const navLinks: { href: string; label: string; icon: LucideIcon }[] = [
@@ -43,6 +45,7 @@ type NavbarProps = {
 export function Navbar({ user = null }: NavbarProps) {
   const pathname = usePathname();
   const itemCount = useCartStore((state) => state.itemCount);
+  const wishlistCount = useWishlistStore((state) => state.items.length);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, startLogout] = useTransition();
@@ -143,6 +146,17 @@ export function Navbar({ user = null }: NavbarProps) {
             {user ? <NavUserMenu user={user} /> : <NavLoginButton />}
 
             <Link
+              aria-label="Wishlist"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm transition-all duration-200 hover:border-brand-green-600/20 hover:text-rose-500 active:scale-95"
+              href="/wishlist"
+            >
+              <Heart className="h-5 w-5" />
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white shadow-sm">
+                {wishlistCount}
+              </span>
+            </Link>
+
+            <Link
               aria-label="Cart"
               className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm transition-all duration-200 hover:border-brand-green-600/20 hover:text-brand-green-600 active:scale-95"
               href="/cart"
@@ -166,6 +180,17 @@ export function Navbar({ user = null }: NavbarProps) {
                 Login
               </Link>
             )}
+
+            <Link
+              aria-label="Wishlist"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm transition-transform duration-200 active:scale-95"
+              href="/wishlist"
+            >
+              <Heart className="h-5 w-5" />
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white shadow-sm">
+                {wishlistCount}
+              </span>
+            </Link>
 
             <Link
               aria-label="Cart"
@@ -319,14 +344,24 @@ export function Navbar({ user = null }: NavbarProps) {
                     <LogOut className="h-4 w-4" />
                     {isLoggingOut ? "Signing out…" : "Logout"}
                   </button>
-                  <Link
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-4 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900"
-                    href="/cart"
-                    onClick={closeMenu}
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    View Cart ({itemCount})
-                  </Link>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Link
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 px-3 text-sm font-semibold text-neutral-700 transition-colors duration-200 active:bg-neutral-50"
+                      href="/wishlist"
+                      onClick={closeMenu}
+                    >
+                      <Heart className="h-4 w-4 text-rose-500" />
+                      Wishlist ({wishlistCount})
+                    </Link>
+                    <Link
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-3 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900"
+                      href="/cart"
+                      onClick={closeMenu}
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      Cart ({itemCount})
+                    </Link>
+                  </div>
                 </div>
               </>
             ) : (
@@ -343,14 +378,24 @@ export function Navbar({ user = null }: NavbarProps) {
                     <LogIn className="h-4 w-4" />
                     Login
                   </Link>
-                  <Link
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-4 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900"
-                    href="/cart"
-                    onClick={closeMenu}
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    View Cart ({itemCount})
-                  </Link>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Link
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neutral-200 px-3 text-sm font-semibold text-neutral-700"
+                      href="/wishlist"
+                      onClick={closeMenu}
+                    >
+                      <Heart className="h-4 w-4 text-rose-500" />
+                      Wishlist ({wishlistCount})
+                    </Link>
+                    <Link
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-3 text-sm font-semibold text-white"
+                      href="/cart"
+                      onClick={closeMenu}
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      Cart ({itemCount})
+                    </Link>
+                  </div>
                 </div>
               </>
             )}

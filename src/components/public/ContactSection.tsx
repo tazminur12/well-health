@@ -15,6 +15,8 @@ import { z } from "zod";
 
 import {
   formatStoreAddress,
+  googleMapsDirectionsUrl,
+  googleMapsEmbedUrl,
   phoneTelHref,
   type StoreSettings,
 } from "@/lib/settings/schemas";
@@ -64,7 +66,8 @@ export function ContactSection({ settings }: ContactSectionProps) {
   });
 
   const address = formatStoreAddress(settings);
-  const mapsQuery = encodeURIComponent(address);
+  const mapsHref = googleMapsDirectionsUrl(settings);
+  const embedSrc = googleMapsEmbedUrl(settings);
   const contactCards = [
     {
       icon: Phone,
@@ -82,7 +85,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
       icon: MapPin,
       title: "Visit Us",
       detail: [settings.city, settings.country].filter(Boolean).join(", "),
-      href: `https://maps.google.com/?q=${mapsQuery}`,
+      href: mapsHref,
     },
     {
       icon: Clock3,
@@ -290,38 +293,30 @@ export function ContactSection({ settings }: ContactSectionProps) {
 
           <div className="space-y-3 sm:space-y-4">
             <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <div className="relative min-h-[16rem] bg-[radial-gradient(circle_at_top,_rgba(22,135,93,0.14),_transparent_32%),linear-gradient(135deg,_#edf7ef_0%,_#f5f5f5_50%,_#e8ecef_100%)] sm:min-h-[20rem] lg:min-h-[28rem]">
-                <div className="absolute inset-0 flex items-center justify-center p-6">
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-neutral-200 sm:h-16 sm:w-16">
-                      <MapPin className="h-7 w-7 text-brand-green-600 sm:h-8 sm:w-8" />
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold text-neutral-900">
-                        {settings.storeName}
-                      </p>
-                      <p className="mt-1 text-sm text-neutral-500">{address}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-3 left-3 right-3 rounded-xl border border-white/70 bg-white/95 px-3 py-2.5 shadow-md backdrop-blur-sm sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-green-600" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-neutral-900">
-                        {settings.city}
-                      </p>
-                      <p className="text-xs text-neutral-500">{settings.country}</p>
-                    </div>
-                  </div>
+              <div className="relative aspect-[4/3] min-h-[16rem] w-full bg-brand-green-50 sm:min-h-[20rem] lg:min-h-[28rem]">
+                <iframe
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={embedSrc}
+                  title={`${settings.storeName} location on Google Maps`}
+                />
+              </div>
+              <div className="flex items-start gap-2 border-t border-neutral-100 px-4 py-3">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-green-600" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-neutral-900">
+                    {settings.storeName}
+                  </p>
+                  <p className="text-xs leading-5 text-neutral-500">{address}</p>
                 </div>
               </div>
             </div>
 
             <a
               className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-brand-green-600 px-5 text-sm font-semibold text-brand-green-600 transition-all duration-200 active:bg-brand-green-100 hover:bg-brand-green-100"
-              href={`https://maps.google.com/?q=${mapsQuery}`}
+              href={mapsHref}
               rel="noopener noreferrer"
               target="_blank"
             >

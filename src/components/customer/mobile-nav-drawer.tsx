@@ -1,13 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import type { CustomerShellUser } from "@/components/customer/customer-header";
 import {
   customerLogoutItem,
   customerNavItems,
-  dummyCustomer,
   isCustomerNavActive,
 } from "@/components/customer/customer-nav";
 import { cn } from "@/lib/utils";
@@ -15,10 +16,27 @@ import { cn } from "@/lib/utils";
 type MobileNavDrawerProps = {
   open: boolean;
   pathname: string | null;
+  user: CustomerShellUser | null;
   onClose: () => void;
 };
 
-export function MobileNavDrawer({ open, pathname, onClose }: MobileNavDrawerProps) {
+function displayName(user: CustomerShellUser | null) {
+  return user?.name?.trim() || user?.email?.split("@")[0] || "Customer";
+}
+
+function initials(user: CustomerShellUser | null) {
+  const name = user?.name?.trim();
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+  return (user?.email ?? "WH").slice(0, 2).toUpperCase();
+}
+
+export function MobileNavDrawer({ open, pathname, user, onClose }: MobileNavDrawerProps) {
   const LogoutIcon = customerLogoutItem.icon;
 
   return (
@@ -46,22 +64,35 @@ export function MobileNavDrawer({ open, pathname, onClose }: MobileNavDrawerProp
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 pb-5 pt-5">
+        <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-gradient-to-br from-brand-green-50/80 to-white px-5 pb-5 pt-5">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-green-100 font-heading text-lg font-bold text-brand-green-600">
-              {dummyCustomer.initials}
+            <span className="relative flex h-14 w-14 shrink-0 overflow-hidden rounded-full bg-brand-green-100 ring-2 ring-white shadow-sm">
+              {user?.avatarUrl ? (
+                <Image
+                  alt=""
+                  className="object-cover"
+                  fill
+                  sizes="56px"
+                  src={user.avatarUrl}
+                  unoptimized={user.avatarUrl.startsWith("/uploads/")}
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center font-heading text-lg font-bold text-brand-green-700">
+                  {initials(user)}
+                </span>
+              )}
             </span>
             <div className="min-w-0">
               <p className="truncate font-heading text-base font-bold text-neutral-900">
-                {dummyCustomer.name}
+                {displayName(user)}
               </p>
-              <p className="truncate text-sm text-neutral-500">{dummyCustomer.email}</p>
+              <p className="truncate text-sm text-neutral-500">{user?.email ?? "—"}</p>
             </div>
           </div>
 
           <button
             aria-label="Close menu"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral-500 transition-colors duration-200 hover:bg-white/80"
             onClick={onClose}
             type="button"
           >
@@ -79,7 +110,7 @@ export function MobileNavDrawer({ open, pathname, onClose }: MobileNavDrawerProp
                 className={cn(
                   "flex min-h-14 items-center gap-3 rounded-xl px-4 py-4 text-base font-medium transition-colors duration-200",
                   active
-                    ? "bg-brand-green-100 text-brand-green-600"
+                    ? "bg-brand-green-100 text-brand-green-700"
                     : "text-neutral-700 active:bg-neutral-100"
                 )}
                 href={href}

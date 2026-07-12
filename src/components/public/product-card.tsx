@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FlaskConical, Heart, Package2, ShoppingCart } from "lucide-react";
+import { FlaskConical, Package2, ShoppingCart } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 
+import { WishlistButton } from "@/components/public/wishlist-button";
+import { showSuccess } from "@/lib/alerts";
 import { formatPrice } from "@/lib/format-price";
 import { getDisplayCompareAt } from "@/lib/products/public-mapper";
 import type { PublicProductCard } from "@/lib/products/public-types";
@@ -15,7 +17,6 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const href = `/shop/${product.slug}`;
@@ -34,6 +35,7 @@ export function ProductCard({ product }: ProductCardProps) {
     });
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 1400);
+    void showSuccess("Added to cart", `${product.name} is ready in your cart.`);
   }
 
   return (
@@ -57,14 +59,19 @@ export function ProductCard({ product }: ProductCardProps) {
           ) : null}
         </div>
 
-        <button
-          aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-          className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-500 shadow-sm transition-all duration-200 active:scale-90 hover:text-brand-green-600 sm:right-3 sm:top-3 sm:h-10 sm:w-10"
-          onClick={() => setIsWishlisted((current) => !current)}
-          type="button"
-        >
-          <Heart className={cn("h-4 w-4", isWishlisted && "fill-current text-rose-500")} />
-        </button>
+        <WishlistButton
+          className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-500 shadow-sm transition-all duration-200 hover:text-brand-green-600 sm:right-3 sm:top-3 sm:h-10 sm:w-10"
+          product={{
+            productId: product.id,
+            slug: product.slug,
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            imageUrl: product.imageUrl,
+            imageTone: product.imageTone,
+            inStock: product.inStock,
+          }}
+        />
 
         <Link className="block" href={href}>
           <div

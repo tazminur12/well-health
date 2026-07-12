@@ -20,7 +20,6 @@ import {
 import {
   defaultPermissionsForAccessLevel,
   normalizePermissions,
-  type AdminPermissionKey,
 } from "@/lib/roles/permissions";
 import {
   acceptInviteSchema,

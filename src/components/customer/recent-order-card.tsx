@@ -45,8 +45,8 @@ type RecentOrderCardProps = {
 export function RecentOrderCard({ order }: RecentOrderCardProps) {
   return (
     <Link
-      className="block rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-colors duration-200 active:bg-neutral-50 hover:border-brand-green-600/30"
-      href={`/orders/${order.id}`}
+      className="block rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-colors duration-200 hover:border-brand-green-600/30 active:bg-neutral-50"
+      href={`/orders/${order.orderNumber}`}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="font-heading text-sm font-bold text-neutral-900">{order.orderNumber}</p>

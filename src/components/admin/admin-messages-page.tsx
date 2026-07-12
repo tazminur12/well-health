@@ -92,10 +92,10 @@ export function AdminMessagesPage() {
   const { data, isLoading, isError, error, refetch } = useAdminMessages(filter);
   const { markRead, markAllRead, updateMessage, deleteMessage } = useMessageMutations();
 
-  const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
 
   const filtered = useMemo(() => {
+    const items = data?.items ?? [];
     const q = search.trim().toLowerCase();
     if (!q) return items;
     return items.filter(
@@ -106,7 +106,7 @@ export function AdminMessagesPage() {
         m.subject.toLowerCase().includes(q) ||
         m.message.toLowerCase().includes(q)
     );
-  }, [items, search]);
+  }, [data?.items, search]);
 
   const selected: AdminContactMessage | null =
     filtered.find((m) => m.id === selectedId) ?? filtered[0] ?? null;
