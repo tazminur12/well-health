@@ -1,63 +1,121 @@
-import { CheckCircle2, Leaf } from "lucide-react";
+import { CheckCircle2, Leaf, ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
+const trustPoints = [
+  "Lab-tested formulations",
+  "GMP-aligned manufacturing",
+  "Trusted by 10,000+ customers",
+  "Science-backed daily wellness",
+];
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const trustPoints = [
-    "Lab Tested Products",
-    "GMP Certified",
-    "Trusted by 10,000+ Customers",
-    "Science-Backed Formulations",
-  ];
-
   return (
-    <div className="min-h-screen bg-white md:grid md:grid-cols-[45%_55%]">
-      <aside className="relative hidden overflow-hidden bg-[linear-gradient(135deg,#0b4d3a_0%,#16875d_100%)] p-10 text-white md:flex md:flex-col md:justify-between">
-        <div className="pointer-events-none absolute -left-16 -top-14 h-48 w-48 rounded-full border border-white/20" />
-        <div className="pointer-events-none absolute -right-20 top-1/3 h-56 w-56 rounded-full border border-white/15" />
-        <div className="pointer-events-none absolute -bottom-20 left-14 h-52 w-52 rounded-full border border-white/20" />
+    <div className="min-h-screen bg-[#F7F8F9] lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+      {/* Brand panel — desktop */}
+      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col">
+        <div className="absolute inset-0 bg-[linear-gradient(145deg,#0B4D3A_0%,#16875D_55%,#0B4D3A_100%)]" />
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18), transparent 35%), radial-gradient(circle at 80% 70%, rgba(201,162,75,0.22), transparent 40%)",
+          }}
+        />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-sm flex-col items-center justify-center text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2">
-            <Leaf className="h-4 w-4" />
-            <span className="font-heading text-sm font-semibold tracking-[0.14em]">WELL HEALTH</span>
+        <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
+          <Link className="inline-flex items-center gap-3 text-white" href="/">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+              <Leaf className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block font-heading text-sm font-bold tracking-[0.18em]">
+                WELL HEALTH
+              </span>
+              <span className="block text-xs text-white/70">Trade International</span>
+            </span>
+          </Link>
+
+          <div className="max-w-md space-y-8">
+            <div className="space-y-4">
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Clinical Premium
+              </p>
+              <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
+                Better Health,
+                <span className="block text-[#E8F5EE]">Better Life</span>
+              </h1>
+              <p className="text-base leading-7 text-white/75">
+                Sign in to manage orders, wishlist, and personalized wellness recommendations.
+              </p>
+            </div>
+
+            <ul className="space-y-3">
+              {trustPoints.map((point) => (
+                <li
+                  key={point}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/90 backdrop-blur-sm"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#C9A24B]" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+
+            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
+              <div className="relative aspect-[16/10]">
+                <Image
+                  alt="Wellness supplements"
+                  className="object-cover opacity-90"
+                  fill
+                  sizes="(max-width: 1280px) 45vw, 520px"
+                  src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1000&q=80"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B4D3A]/70 to-transparent" />
+                <p className="absolute bottom-4 left-4 right-4 text-sm font-medium text-white">
+                  Premium supplements crafted for everyday wellbeing.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <p className="mt-8 text-lg font-medium text-white/90">Better Health, Better Life</p>
-
-          <ul className="mt-6 space-y-3 text-left text-sm text-white/90">
-            {trustPoints.map((point) => (
-              <li key={point} className="inline-flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-white" />
-                {point}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-10 flex h-40 w-56 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-sm font-medium text-white/80">
-            Product Visual
-          </div>
+          <p className="text-xs text-white/50">
+            © {new Date().getFullYear()} Well Health Trade International
+          </p>
         </div>
       </aside>
 
-      <section className="flex min-h-screen items-center justify-center bg-white px-6 py-10 md:px-10">
-        <div className="w-full max-w-md space-y-6">
-          <div className="flex justify-end">
+      {/* Form panel */}
+      <section className="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-10 xl:px-16">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(22,135,93,0.08),_transparent_45%)]"
+        />
+
+        <div className="relative w-full max-w-[420px] space-y-6">
+          <div className="flex items-center justify-between gap-3">
+            <Link className="inline-flex items-center gap-2.5 lg:invisible" href="/">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green-100 text-brand-green-600">
+                <Leaf className="h-5 w-5" />
+              </span>
+              <span className="font-heading text-sm font-bold tracking-[0.14em] text-brand-green-900">
+                WELL HEALTH
+              </span>
+            </Link>
+
             <Link
-              className="inline-flex h-9 items-center rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-600 transition-colors duration-200 hover:bg-neutral-100 hover:text-neutral-900"
+              className="inline-flex min-h-10 items-center rounded-xl border border-neutral-200 bg-white px-3.5 text-sm font-medium text-neutral-600 shadow-sm transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50 hover:text-neutral-900"
               href="/"
             >
-              Home Page
+              Back to Home
             </Link>
           </div>
 
-          <div className="inline-flex items-center gap-2 text-brand-green-700 md:hidden">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-green-100">
-              <Leaf className="h-4 w-4" />
-            </span>
-            <span className="font-heading text-sm font-semibold tracking-[0.12em]">WELL HEALTH</span>
+          <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-[0_18px_50px_rgba(11,77,58,0.06)] sm:p-7">
+            {children}
           </div>
-
-          {children}
         </div>
       </section>
     </div>

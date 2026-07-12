@@ -4,220 +4,188 @@ import {
   AlertTriangle,
   CheckCircle,
   Download,
+  Loader2,
   Package,
   Plus,
   Search,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { AdminProductsTable } from "@/components/admin/admin-products-table";
 import {
   type AdminProduct,
-  AdminProductsTable,
   type ProductCategory,
-} from "@/components/admin/admin-products-table";
-import { ProductFormDrawer } from "@/components/admin/product-form-drawer";
+  getProductStockBucket,
+  PRODUCT_CATEGORIES,
+} from "@/components/admin/products-data";
 import { Button } from "@/components/ui/button";
+import { useAdminProducts, useProductMutations } from "@/hooks/use-admin-products";
+import { confirmAdminAction, showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
 import { cn } from "@/lib/utils";
 
 type StockFilter = "All" | "In Stock" | "Low Stock" | "Out of Stock";
-
-const categories: ProductCategory[] = ["Eye Care", "Brain Health", "Omega", "Vitamins"];
-
-const initialProducts: AdminProduct[] = [
-  {
-    id: "prod-1",
-    name: "Vision Guard Plus",
-    nameBn: "ভিশন গার্ড প্লাস",
-    category: "Eye Care",
-    sku: "WHT-EYE-1001",
-    price: 1450,
-    compareAtPrice: 1650,
-    stock: 64,
-    lowStockThreshold: 15,
-    description: "Lutein-rich blend crafted for daily eye strain support.",
-    descriptionBn: "প্রতিদিনের চোখের সুরক্ষায় লুটেইন সমৃদ্ধ ফর্মুলা।",
-    featured: true,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#edf6ff_0%,#d8e9fb_100%)]",
-  },
-  {
-    id: "prod-2",
-    name: "Retina Shield Omega",
-    category: "Eye Care",
-    sku: "WHT-EYE-1002",
-    price: 1320,
-    stock: 14,
-    lowStockThreshold: 10,
-    description: "Omega support formula to help maintain retinal performance.",
-    featured: false,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#edf8f5_0%,#d8ede7_100%)]",
-  },
-  {
-    id: "prod-3",
-    name: "Neuro Balance Plus",
-    category: "Brain Health",
-    sku: "WHT-BRN-2001",
-    price: 1780,
-    compareAtPrice: 1990,
-    stock: 39,
-    lowStockThreshold: 12,
-    description: "B-complex and herbal matrix designed for focus and clarity.",
-    featured: true,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#f1f5ff_0%,#dee7fb_100%)]",
-  },
-  {
-    id: "prod-4",
-    name: "Mind Spark Junior",
-    category: "Brain Health",
-    sku: "WHT-BRN-2002",
-    price: 1210,
-    stock: 0,
-    lowStockThreshold: 8,
-    description: "Gentle cognition support for younger wellness routines.",
-    featured: false,
-    status: "Draft",
-    imageTone: "bg-[linear-gradient(135deg,#fdf4e8_0%,#f8e2c2_100%)]",
-  },
-  {
-    id: "prod-5",
-    name: "Omega 3 Triple Strength",
-    category: "Omega",
-    sku: "WHT-OMG-3001",
-    price: 1680,
-    stock: 22,
-    lowStockThreshold: 10,
-    description: "Concentrated fish oil with EPA and DHA for heart-health support.",
-    featured: true,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#eaf8ff_0%,#d5ebf8_100%)]",
-  },
-  {
-    id: "prod-6",
-    name: "Cardio Omega Softgel",
-    category: "Omega",
-    sku: "WHT-OMG-3002",
-    price: 1490,
-    compareAtPrice: 1690,
-    stock: 9,
-    lowStockThreshold: 10,
-    description: "Daily omega support formulated for lipid balance.",
-    featured: false,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#ecf6f2_0%,#d9ece5_100%)]",
-  },
-  {
-    id: "prod-7",
-    name: "Daily Multivitamin Core",
-    category: "Vitamins",
-    sku: "WHT-VIT-4001",
-    price: 980,
-    stock: 120,
-    lowStockThreshold: 20,
-    description: "Comprehensive daily vitamin and mineral baseline blend.",
-    featured: false,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#f2f9ed_0%,#deefd2_100%)]",
-  },
-  {
-    id: "prod-8",
-    name: "Vitamin D3+K2 Gold",
-    category: "Vitamins",
-    sku: "WHT-VIT-4002",
-    price: 1120,
-    stock: 0,
-    lowStockThreshold: 10,
-    description: "Bone and immune support with active D3 and K2 pairing.",
-    featured: true,
-    status: "Active",
-    imageTone: "bg-[linear-gradient(135deg,#fff5e6_0%,#fbe4c1_100%)]",
-  },
-];
-
-const summaryCards = [
-  { icon: Package, tone: "text-neutral-700", value: "48", label: "Total Products" },
-  { icon: CheckCircle, tone: "text-brand-green-600", value: "42", label: "Active" },
-  { icon: AlertTriangle, tone: "text-amber-500", value: "6", label: "Low Stock" },
-  { icon: XCircle, tone: "text-red-600", value: "2", label: "Out of Stock" },
-];
-
-function getStockBucket(stock: number): Exclude<StockFilter, "All"> {
-  if (stock === 0) return "Out of Stock";
-  if (stock <= 20) return "Low Stock";
-  return "In Stock";
-}
+type StatusFilter = "All" | AdminProduct["status"];
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<AdminProduct[]>(initialProducts);
+  const { data: products = [], isLoading, isError, error, refetch } = useAdminProducts();
+  const {
+    deleteProduct,
+    deleteProducts,
+    archiveProducts,
+    toggleFeatured,
+    setStatus,
+  } = useProductMutations();
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<"All Categories" | ProductCategory>("All Categories");
   const [stockFilter, setStockFilter] = useState<StockFilter>("All");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState(10);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState<"add" | "edit">("add");
-  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+
+  const stats = useMemo(() => {
+    const active = products.filter((item) => item.status === "Active").length;
+    const lowStock = products.filter(
+      (item) => item.stock > 0 && item.stock <= item.lowStockThreshold
+    ).length;
+    const outOfStock = products.filter((item) => item.stock <= 0).length;
+    return {
+      total: products.length,
+      active,
+      lowStock,
+      outOfStock,
+    };
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
     return products.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(search.trim().toLowerCase());
+      const matchesSearch =
+        !query ||
+        product.name.toLowerCase().includes(query) ||
+        product.sku.toLowerCase().includes(query) ||
+        product.category.toLowerCase().includes(query);
+
       const matchesCategory = category === "All Categories" ? true : product.category === category;
-      const matchesStock = stockFilter === "All" ? true : getStockBucket(product.stock) === stockFilter;
+      const matchesStock =
+        stockFilter === "All"
+          ? true
+          : getProductStockBucket(product.stock, product.lowStockThreshold) === stockFilter;
+      const matchesStatus = statusFilter === "All" ? true : product.status === statusFilter;
       const matchesFeatured = featuredOnly ? product.featured : true;
 
-      return matchesSearch && matchesCategory && matchesStock && matchesFeatured;
+      return matchesSearch && matchesCategory && matchesStock && matchesStatus && matchesFeatured;
     });
-  }, [category, featuredOnly, products, search, stockFilter]);
+  }, [category, featuredOnly, products, search, statusFilter, stockFilter]);
 
-  const visibleProducts = filteredProducts.slice(0, pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const visibleProducts = filteredProducts.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const summaryCards = [
+    { icon: Package, tone: "text-neutral-700", value: String(stats.total), label: "Total Products" },
+    { icon: CheckCircle, tone: "text-brand-green-600", value: String(stats.active), label: "Active" },
+    { icon: AlertTriangle, tone: "text-amber-500", value: String(stats.lowStock), label: "Low Stock" },
+    { icon: XCircle, tone: "text-red-600", value: String(stats.outOfStock), label: "Out of Stock" },
+  ];
 
   function handleToggleSelect(id: string) {
-    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
   }
 
   function handleToggleSelectAll() {
     const visibleIds = visibleProducts.map((product) => product.id);
-    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+    const allVisibleSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
 
     setSelectedIds((current) => {
       if (allVisibleSelected) {
         return current.filter((id) => !visibleIds.includes(id));
       }
-
       return Array.from(new Set([...current, ...visibleIds]));
     });
   }
 
-  function handleOpenAddDrawer() {
-    setDrawerMode("add");
-    setEditingProduct(null);
-    setDrawerOpen(true);
-  }
-
-  function handleOpenEditDrawer(product: AdminProduct) {
-    setDrawerMode("edit");
-    setEditingProduct(product);
-    setDrawerOpen(true);
-  }
-
-  function handleSaveProduct(payload: AdminProduct) {
-    setProducts((current) => {
-      if (drawerMode === "edit") {
-        return current.map((item) => (item.id === payload.id ? payload : item));
-      }
-
-      return [payload, ...current];
+  async function handleDelete(product: AdminProduct) {
+    const confirmed = await confirmAdminAction({
+      title: "Delete product?",
+      text: `"${product.name}" will be removed from the catalog.`,
+      confirmText: "Delete",
     });
+    if (!confirmed) return;
+
+    try {
+      await deleteProduct.mutateAsync(product.id);
+      setSelectedIds((current) => current.filter((id) => id !== product.id));
+      await showAdminSuccess("Product deleted", "The product was removed successfully.");
+    } catch (err) {
+      await showAdminError("Delete failed", err instanceof Error ? err.message : "Try again.");
+    }
   }
 
-  function handleToggleFeatured(id: string) {
-    setProducts((current) =>
-      current.map((product) =>
-        product.id === id ? { ...product, featured: !product.featured } : product
-      )
+  async function handleBulkDelete() {
+    if (selectedIds.length === 0) return;
+    const confirmed = await confirmAdminAction({
+      title: "Delete selected products?",
+      text: `${selectedIds.length} products will be permanently removed.`,
+      confirmText: "Delete all",
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteProducts.mutateAsync(selectedIds);
+      setSelectedIds([]);
+      await showAdminSuccess("Products deleted", "Selected products were removed.");
+    } catch (err) {
+      await showAdminError("Delete failed", err instanceof Error ? err.message : "Try again.");
+    }
+  }
+
+  async function handleBulkArchive() {
+    if (selectedIds.length === 0) return;
+    const confirmed = await confirmAdminAction({
+      title: "Archive selected?",
+      text: `${selectedIds.length} products will be marked as Archived.`,
+      confirmText: "Archive",
+    });
+    if (!confirmed) return;
+
+    try {
+      await archiveProducts.mutateAsync(selectedIds);
+      setSelectedIds([]);
+      await showAdminSuccess("Products archived", "Selected products are now archived.");
+    } catch (err) {
+      await showAdminError("Archive failed", err instanceof Error ? err.message : "Try again.");
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-sm text-neutral-500">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-green-600" />
+        Loading products from database...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+        <h2 className="font-heading text-lg font-bold text-red-700">Could not load products</h2>
+        <p className="mt-2 text-sm text-red-600">
+          {error instanceof Error ? error.message : "Unexpected error"}
+        </p>
+        <Button className="mt-4 rounded-xl" onClick={() => refetch()} type="button">
+          Retry
+        </Button>
+      </div>
     );
   }
 
@@ -225,23 +193,26 @@ export default function AdminProductsPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-neutral-900">Products</h1>
-          <p className="mt-1 text-sm text-neutral-500">Manage your product catalog</p>
+          <h1 className="font-heading text-2xl font-bold text-neutral-900">Product Management</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            Create, update, and organize your clinical supplement catalog
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button className="h-10 rounded-lg" variant="outline">
+          <Button className="h-10 rounded-xl" type="button" variant="outline">
             <Download className="h-4 w-4" />
             Export
           </Button>
 
           <Button
-            className="h-10 rounded-lg bg-brand-green-600 text-white hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md"
-            onClick={handleOpenAddDrawer}
-            type="button"
+            asChild
+            className="h-10 rounded-xl bg-brand-green-600 text-white hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md"
           >
-            <Plus className="h-4 w-4" />
-            Add Product
+            <Link href="/admin/products/new">
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Link>
           </Button>
         </div>
       </header>
@@ -253,37 +224,49 @@ export default function AdminProductsPage() {
           return (
             <article
               key={card.label}
-              className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-sm"
+              className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 shadow-sm"
             >
-              <span className={cn("inline-flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100", card.tone)}>
-                <Icon className="h-4.5 w-4.5" />
+              <span
+                className={cn(
+                  "inline-flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100",
+                  card.tone
+                )}
+              >
+                <Icon className="h-5 w-5" />
               </span>
-              <p className="text-sm text-neutral-700">
-                <span className="font-semibold text-neutral-900">{card.value}</span> {card.label}
-              </p>
+              <div>
+                <p className="font-heading text-xl font-bold text-neutral-900">{card.value}</p>
+                <p className="text-sm text-neutral-500">{card.label}</p>
+              </div>
             </article>
           );
         })}
       </section>
 
-      <section className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+      <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
         <label className="relative min-w-[230px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
           <input
-            className="h-10 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search products by name..."
+            className="h-10 w-full rounded-xl border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Search by name, SKU, or category..."
             value={search}
           />
         </label>
 
         <select
-          className="h-10 min-w-[170px] rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
-          onChange={(event) => setCategory(event.target.value as "All Categories" | ProductCategory)}
+          className="h-10 min-w-[160px] rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
+          onChange={(event) => {
+            setCategory(event.target.value as "All Categories" | ProductCategory);
+            setPage(1);
+          }}
           value={category}
         >
           <option value="All Categories">All Categories</option>
-          {categories.map((item) => (
+          {PRODUCT_CATEGORIES.map((item) => (
             <option key={item} value={item}>
               {item}
             </option>
@@ -291,17 +274,34 @@ export default function AdminProductsPage() {
         </select>
 
         <select
-          className="h-10 min-w-[160px] rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
-          onChange={(event) => setStockFilter(event.target.value as StockFilter)}
+          className="h-10 min-w-[140px] rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
+          onChange={(event) => {
+            setStockFilter(event.target.value as StockFilter);
+            setPage(1);
+          }}
           value={stockFilter}
         >
-          <option value="All">All</option>
+          <option value="All">All Stock</option>
           <option value="In Stock">In Stock</option>
           <option value="Low Stock">Low Stock</option>
           <option value="Out of Stock">Out of Stock</option>
         </select>
 
-        <div className="ml-auto flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2">
+        <select
+          className="h-10 min-w-[140px] rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-brand-green-600 focus:ring-2 focus:ring-brand-green-600/20"
+          onChange={(event) => {
+            setStatusFilter(event.target.value as StatusFilter);
+            setPage(1);
+          }}
+          value={statusFilter}
+        >
+          <option value="All">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Draft">Draft</option>
+          <option value="Archived">Archived</option>
+        </select>
+
+        <div className="ml-auto flex items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2">
           <span className="text-sm font-medium text-neutral-600">Featured Only</span>
           <button
             aria-checked={featuredOnly}
@@ -309,7 +309,10 @@ export default function AdminProductsPage() {
               "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200",
               featuredOnly ? "bg-brand-green-600" : "bg-neutral-300"
             )}
-            onClick={() => setFeaturedOnly((current) => !current)}
+            onClick={() => {
+              setFeaturedOnly((current) => !current);
+              setPage(1);
+            }}
             role="switch"
             type="button"
           >
@@ -324,25 +327,41 @@ export default function AdminProductsPage() {
       </section>
 
       <AdminProductsTable
-        onDelete={() => undefined}
-        onEdit={handleOpenEditDrawer}
-        onPageSizeChange={setPageSize}
-        onToggleFeatured={handleToggleFeatured}
+        onBulkArchive={handleBulkArchive}
+        onBulkDelete={handleBulkDelete}
+        onDelete={handleDelete}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
+        onStatusChange={async (id, status) => {
+          try {
+            await setStatus.mutateAsync({ id, status });
+          } catch (err) {
+            await showAdminError(
+              "Status update failed",
+              err instanceof Error ? err.message : "Try again."
+            );
+          }
+        }}
+        onToggleFeatured={async (id) => {
+          try {
+            await toggleFeatured.mutateAsync(id);
+          } catch (err) {
+            await showAdminError(
+              "Update failed",
+              err instanceof Error ? err.message : "Try again."
+            );
+          }
+        }}
         onToggleSelect={handleToggleSelect}
         onToggleSelectAll={handleToggleSelectAll}
+        page={safePage}
         pageSize={pageSize}
         products={visibleProducts}
         selectedIds={selectedIds.filter((id) => visibleProducts.some((product) => product.id === id))}
-        totalProducts={48}
-      />
-
-      <ProductFormDrawer
-        categories={categories}
-        mode={drawerMode}
-        onClose={() => setDrawerOpen(false)}
-        onSave={handleSaveProduct}
-        open={drawerOpen}
-        product={editingProduct}
+        totalFiltered={filteredProducts.length}
       />
     </div>
   );

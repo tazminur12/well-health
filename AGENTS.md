@@ -112,18 +112,116 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 7. Admin layout — sidebar + topbar + dashboard overview
 8. Admin Products page — table + Add/Edit drawer
 9. Admin Orders page — table + order detail drawer
-10. Admin Customers page — table + customer detail drawer
+10. Admin Customers — list + full-page Add / Details / Edit (CRM backend)
 11. Customer Dashboard layout + overview page (mobile-first: bottom tabs, slide-in drawer, desktop sidebar)
 12. Customer Profile page (summary card, accordion sections, address/password modals, danger zone)
 13. Customer Orders — list page (filter tabs, search, order cards, load more) + order detail page (vertical timeline, items, payment, contextual actions)
 14. Customer Wishlist page (2/3/4-col grid, always-filled heart w/ remove animation, out-of-stock state, sort toolbar, sticky bulk-add bar, undo snackbar)
+15. Auth UI — login/register pages (premium auth layout, form validation, password strength)
+16. Forgot / Reset password pages + Supabase email recovery callback (`/auth/callback`)
+17. Admin Product Management redesign — full-page Add/Edit product form, list CRUD (filters, pagination, bulk archive/delete, live stats)
+
+**Completed (Backend — Auth):**
+1. Supabase Auth login / register / logout server actions (`src/lib/auth/actions.ts`)
+2. Zod validation schemas + Prisma `User` model sync on auth
+3. Middleware session refresh + protected customer/admin routes + auth-page redirects
+4. Login/register UI wired to backend; logout wired in customer shell
+5. Password reset flow (`forgotPasswordAction`, `resetPasswordAction`) + `users` table synced
+
+**Completed (Backend — Products):**
+1. Prisma models: `Category`, `Product`, `ProductImage` (+ offer fields, enums)
+2. Admin-gated product server actions (CRUD, bulk delete/archive, featured/status)
+3. Zod validation + DTO mapper; seed script (`npm run db:seed`)
+4. Admin UI wired via TanStack Query to live DB
+5. Local product image uploads (`public/uploads/products`) + Server Actions body limit 32mb
+6. Public storefront wired to Active products — Shop, PDP, Featured, Shop preview, Cart (Zustand)
+
+**Completed (Backend — Customers):**
+1. Prisma `User` CRM fields: `status` (ACTIVE/SUSPENDED), `notes`, `isVip`
+2. Admin customer actions: list/get/create/update/suspend/delete via Supabase Admin API + Prisma
+3. Full-page UI: list, `/admin/customers/new`, `/admin/customers/[id]`, `/admin/customers/[id]/edit` (drawer removed)
+
+**Completed (Backend — Role Management):**
+1. Prisma `StaffRole` + `StaffInvite` models; User.staffRoleId
+2. Create custom roles (Admin/Support access), create staff accounts, Resend email invites
+3. Accept invite page `/invite/[token]`; admin UI `/admin/roles`
+4. Role details `/admin/roles/[id]` — toggle module permissions (dashboard, products, orders, customers, roles, blog, content, settings); Super Admin locked full access; Customer has no admin modules
+
+**Completed (Backend — Admin Profile):**
+1. `/admin/profile` — personal details, avatar upload, password change, sign out
+2. Server actions sync Prisma + Supabase metadata; shell topbar/sidebar show live admin name/avatar
+
+**Completed (Backend — Blog):**
+1. Prisma `BlogPost` model (status Draft/Published/Scheduled/Archived, categories, SEO, featured image, views, author)
+2. Admin CRUD actions + featured image upload (`public/uploads/blog`) + React Query hooks
+3. Premium admin UI: live stats, filters, bulk delete, featured toggle, markdown editor toolbar, SEO search preview
+4. Public storefront `/blog` + `/blog/[slug]` (category filters, reading time, admin draft preview via `?preview=1`)
+5. Navbar + footer Blog links
+
+**Completed (Backend — Content Management):**
+1. Prisma models: `HeroSlide`, `TrustBadge`, `FaqItem`, `SiteSetting` (about_home + site_assets)
+2. Admin `/admin/content` tabs wired: Hero, Trust Badges, About, FAQ, Site Assets — CRUD + image uploads
+3. Homepage consumes live CMS content (with sensible fallbacks)
+4. Seed defaults for hero/trust/FAQ/about
+
+**Completed (Backend — Store Settings):**
+1. `SiteSetting` key `store_settings` — store name, contact, social, shipping defaults, SEO, maintenance flag
+2. Admin `/admin/settings` — tabbed UI (General, Contact, Social, Orders, SEO) + Zod-validated server actions
+3. Public TopBar, Footer, Contact section/page, Map card consume live settings (with defaults)
+
+**Completed (Backend — Admin Notifications):**
+1. Prisma `AdminNotification` model (ORDER / PRODUCT / CUSTOMER / SYSTEM / BLOG)
+2. Admin `/admin/notifications` — filters, mark read, mark all, delete
+3. Topbar bell dropdown — unread badge, preview list, mark all, link to full page
+
+**Completed (Admin — API Health):**
+1. Sidebar + `/admin/api-health` — live checks for App, Postgres, Supabase Auth, Cloudinary, Resend, SSLCommerz, bKash
+2. Premium status dashboard with overall health, latency, and category groups
+
+**Completed (Backend — Categories):**
+1. Category `isActive` field; admin CRUD + reorder + activate/deactivate
+2. Premium `/admin/categories` — gradient cards, stats, search/filters, slide-over editor
+3. Sidebar + role permission `categories`
+
+**Completed (Backend — Inventory):**
+1. Admin `/admin/inventory` — live stock table, filters, +/- adjust, edit stock/threshold
+2. Server actions for list/update/adjust; Catalog sidebar group + permission `inventory`
+
+**Completed (Backend — Coupons):**
+1. Prisma `Coupon` model (percent/fixed, limits, schedule, usage tracking)
+2. Premium `/admin/coupons` — cards, filters, create/edit drawer, enable/disable
+3. Sales sidebar + permission `coupons`; seed sample promos
+
+**Completed (Backend — Reviews):**
+1. Prisma `ProductReview` (PENDING/APPROVED/REJECTED, featured, admin reply)
+2. Premium `/admin/reviews` — moderation queue, approve/reject, feature, reply, delete
+3. Catalog sidebar + permission `reviews`; seed sample reviews
+
+**Completed (Backend — Shipping):**
+1. Prisma `ShippingZone` + `ShippingCourier` for Bangladesh delivery
+2. Premium `/admin/shipping` — zones (fees, ETA, COD), couriers, store free-shipping summary
+3. Sales sidebar + permission `shipping`; seed Dhaka / Outside Dhaka zones + partners
+
+**Completed (Design — Reports / Analytics):**
+1. Premium `/admin/reports` — KPI cards, range filters, revenue trend, order status, category/payment mix, regions, top products (dummy data + Recharts)
+2. Overview sidebar + permission `reports`
+
+**Completed (Backend — Marketing Campaigns):**
+1. Prisma `MarketingCampaign` (EMAIL / SMS, audiences, draft → send)
+2. Premium `/admin/marketing` — Email + SMS tabs, compose drawer, audience targeting, campaign cards
+3. Resend email sends (preview mode if key missing); SMS via `src/lib/sms.ts` stub until `SMS_*` env vars are added
+4. Marketing sidebar (Campaigns) + permission `marketing`
+
+**Completed (Backend — Messages / Chat Inbox):**
+1. Prisma `ContactMessage` linked to Contact page + homepage contact form submissions
+2. Premium `/admin/messages` split inbox — filters, thread list, chat-style detail, notes, archive, mailto reply
+3. Creates admin notification on new inquiry; sidebar unread badge; permission `messages`
 
 **Next up:**
-- Admin Chat Inbox (design)
 - Customer Messages page (design)
-- Dedicated Shop page with filters, Product Detail page, Cart page (design)
-- Chat Widget — customer-facing (design)
-- Backend integration phase (Prisma schema, Supabase Auth, Cloudinary uploads, SSLCommerz payment, Supabase Realtime chat)
+- Chat Widget — live realtime (backend)
+- Checkout + payment (SSLCommerz / bKash)
+- Remaining backend (Cloudinary CDN, Orders/Address models, Realtime chat)
 - Bilingual (EN/BN) toggle, SEO, deployment
 
 ---

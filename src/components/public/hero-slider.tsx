@@ -1,132 +1,196 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import type { PublicHeroSlide } from "@/lib/content/public-queries";
 import { cn } from "@/lib/utils";
 
-type HeroImageSlide = {
-  id: string;
-  src: string;
-  alt: string;
+const BANNER_WIDTH = 1920;
+const BANNER_HEIGHT = 700;
+
+type HeroSliderProps = {
+  slides: PublicHeroSlide[];
 };
 
-const slides: HeroImageSlide[] = [
-  {
-    id: "1",
-    src: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1920&q=80",
-    alt: "Premium skincare and wellness products on a soft surface",
-  },
-  {
-    id: "2",
-    src: "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&w=1920&q=80",
-    alt: "Colorful vitamin capsules and daily supplements",
-  },
-  {
-    id: "3",
-    src: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&w=1920&q=80",
-    alt: "Assorted medicine bottles and health essentials",
-  },
-  {
-    id: "4",
-    src: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1920&q=80",
-    alt: "Clinical-grade medicine and supplement packaging",
-  },
-];
+export function HeroSlider({ slides }: HeroSliderProps) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPx, setDragPx] = useState(0);
+  const startX = useRef(0);
+  const startTime = useRef(0);
+  const trackRef = useRef<HTMLDivElement>(null);
 
-export function HeroSlider() {
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const safeSlides = slides.length > 0 ? slides : [];
 
   const goTo = (index: number) => {
-    setActiveSlide((index + slides.length) % slides.length);
+    if (safeSlides.length === 0) return;
+    setCurrentSlide(((index % safeSlides.length) + safeSlides.length) % safeSlides.length);
+    setDragPx(0);
   };
 
+  const goPrev = () => goTo(currentSlide - 1);
+  const goNext = () => goTo(currentSlide + 1);
+
   useEffect(() => {
-    if (isPaused) return;
-
+    if (isDragging || safeSlides.length <= 1) return;
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % slides.length);
+      setCurrentSlide((prev) => (prev + 1) % safeSlides.length);
     }, 5000);
-
     return () => window.clearInterval(timer);
-  }, [isPaused]);
+  }, [isDragging, safeSlides.length]);
+
+  if (safeSlides.length === 0) return null;
+
+  const onPointerDown = (clientX: number) => {
+    if (safeSlides.length <= 1) return;
+    setIsDragging(true);
+    startX.current = clientX;
+    startTime.current = Date.now();
+    setDragPx(0);
+  };
+
+  const onPointerMove = (clientX: number) => {
+    if (!isDragging) return;
+    setDragPx(clientX - startX.current);
+  };
+
+  const onPointerUp = (clientX: number) => {
+    if (!isDragging) return;
+    const diff = startX.current - clientX;
+    const elapsed = Date.now() - startTime.current;
+    const width = trackRef.current?.offsetWidth ?? 375;
+    const threshold = Math.min(80, width * 0.18);
+
+    if (Math.abs(diff) > threshold || (Math.abs(diff) > 30 && elapsed < 300)) {
+      if (diff > 0) goNext();
+      else goPrev();
+    } else {
+      setDragPx(0);
+    }
+    setIsDragging(false);
+  };
+
+  const translatePercent = -currentSlide * 100;
+  const dragPercent =
+    trackRef.current && trackRef.current.offsetWidth > 0
+      ? (dragPx / trackRef.current.offsetWidth) * 100
+      : 0;
 
   return (
     <section
       aria-label="Hero image slider"
       aria-roledescription="carousel"
-      className="relative w-full overflow-hidden bg-neutral-100"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
+      className="relative w-full select-none overflow-hidden bg-neutral-100"
+      ref={trackRef}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onPointerDown(e.clientX);
+      }}
+      onMouseLeave={() => {
+        if (isDragging) {
+          setIsDragging(false);
+          setDragPx(0);
+        }
+      }}
+      onMouseMove={(e) => onPointerMove(e.clientX)}
+      onMouseUp={(e) => onPointerUp(e.clientX)}
+      onTouchCancel={() => {
+        setIsDragging(false);
+        setDragPx(0);
+      }}
+      onTouchEnd={(e) => onPointerUp(e.changedTouches[0].clientX)}
+      onTouchMove={(e) => onPointerMove(e.touches[0].clientX)}
+      onTouchStart={(e) => onPointerDown(e.touches[0].clientX)}
+      style={{ cursor: isDragging ? "grabbing" : "grab" }}
     >
-      {/*
-        Full-image banner (looklify-style):
-        width 100% + natural height — no aspect-ratio crop on mobile.
-      */}
-      <div className="relative w-full">
-        {slides.map((slide, index) => (
-          <div
-            key={slide.id}
-            aria-hidden={activeSlide !== index}
-            className={cn(
-              "w-full transition-opacity duration-500 ease-out",
-              activeSlide === index
-                ? "relative z-10 opacity-100"
-                : "pointer-events-none absolute inset-x-0 top-0 z-0 opacity-0"
-            )}
-          >
+      <div
+        className="flex w-full"
+        style={{
+          transform: `translateX(calc(${translatePercent}% + ${dragPercent}%))`,
+          transition: isDragging ? "none" : "transform 0.35s ease-out",
+        }}
+      >
+        {safeSlides.map((slide, index) => {
+          const image = (
             <Image
               alt={slide.alt}
-              className="h-auto w-full object-contain"
-              height={1080}
+              className="pointer-events-none block h-auto w-full"
+              draggable={false}
+              height={BANNER_HEIGHT}
               priority={index === 0}
               sizes="100vw"
-              src={slide.src}
-              width={1920}
+              src={slide.imageUrl}
+              unoptimized={slide.imageUrl.startsWith("/uploads/")}
+              width={BANNER_WIDTH}
             />
-          </div>
-        ))}
+          );
 
-        <button
-          aria-label="Previous slide"
-          className="absolute left-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-white/90 text-neutral-900 shadow-md backdrop-blur-sm transition-all duration-200 active:scale-95 hover:bg-white sm:left-4 sm:h-11 sm:w-11"
-          onClick={() => goTo(activeSlide - 1)}
-          type="button"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
+          return (
+            <div key={slide.id} className="relative w-full shrink-0 grow-0 basis-full">
+              {slide.linkUrl ? (
+                <Link className="block" href={slide.linkUrl} onClick={(e) => e.stopPropagation()}>
+                  {image}
+                </Link>
+              ) : (
+                image
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-        <button
-          aria-label="Next slide"
-          className="absolute right-2 top-1/2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-white/90 text-neutral-900 shadow-md backdrop-blur-sm transition-all duration-200 active:scale-95 hover:bg-white sm:right-4 sm:h-11 sm:w-11"
-          onClick={() => goTo(activeSlide + 1)}
-          type="button"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
+      {safeSlides.length > 1 ? (
+        <>
+          <button
+            aria-label="Previous slide"
+            className="absolute left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/50 md:inline-flex"
+            onClick={(e) => {
+              e.stopPropagation();
+              goPrev();
+            }}
+            type="button"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            aria-label="Next slide"
+            className="absolute right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/50 md:inline-flex"
+            onClick={(e) => {
+              e.stopPropagation();
+              goNext();
+            }}
+            type="button"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      ) : null}
 
-        <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-2 sm:bottom-4">
-          {slides.map((slide, index) => (
+      {safeSlides.length > 1 ? (
+        <div className="absolute inset-x-0 bottom-2.5 z-20 flex justify-center gap-1.5 sm:bottom-3 sm:gap-2">
+          {safeSlides.map((slide, index) => (
             <button
               key={slide.id}
+              aria-current={currentSlide === index ? "true" : undefined}
               aria-label={`Go to slide ${index + 1}`}
-              aria-current={activeSlide === index ? "true" : undefined}
               className={cn(
-                "h-2 rounded-full shadow-sm transition-all duration-200",
-                activeSlide === index
-                  ? "w-7 bg-brand-green-600"
-                  : "w-2 bg-white/80 ring-1 ring-black/10 active:bg-brand-green-600/70"
+                "h-1.5 rounded-full transition-all duration-200 sm:h-2",
+                currentSlide === index
+                  ? "w-5 bg-white shadow-sm sm:w-6"
+                  : "w-1.5 bg-white/55 active:bg-white/80 sm:w-2"
               )}
-              onClick={() => goTo(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                goTo(index);
+              }}
               type="button"
             />
           ))}
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

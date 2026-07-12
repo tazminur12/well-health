@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Leaf } from "lucide-react";
 
+import { LogoutButton } from "@/components/auth/logout-button";
 import {
   customerLogoutItem,
   customerNavItems,
@@ -61,13 +62,10 @@ export function CustomerSidebar({ pathname }: CustomerSidebarProps) {
       </nav>
 
       <div className="border-t border-neutral-200 p-3">
-        <Link
-          className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-500 transition-all duration-200 active:bg-red-50 hover:bg-red-50 hover:text-red-600"
-          href={customerLogoutItem.href}
-        >
+        <LogoutButton className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-500 transition-all duration-200 active:bg-red-50 hover:bg-red-50 hover:text-red-600">
           <LogoutIcon className="h-5 w-5 shrink-0" />
           <span>{customerLogoutItem.label}</span>
-        </Link>
+        </LogoutButton>
       </div>
     </aside>
   );

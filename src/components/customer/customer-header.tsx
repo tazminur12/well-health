@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bell, ChevronDown, Menu } from "lucide-react";
 
+import { LogoutButton } from "@/components/auth/logout-button";
 import {
   dummyCustomer,
   getCustomerPageTitle,
@@ -83,14 +84,13 @@ function AccountMenu({
           >
             Profile
           </Link>
-          <Link
-            className="block px-4 py-3 text-sm text-red-600 transition-colors duration-200 active:bg-red-50 hover:bg-red-50"
-            href="/login"
+          <LogoutButton
+            className="block w-full px-4 py-3 text-left text-sm text-red-600 transition-colors duration-200 active:bg-red-50 hover:bg-red-50"
             onClick={() => setOpen(false)}
             role="menuitem"
           >
             Logout
-          </Link>
+          </LogoutButton>
         </div>
       ) : null}
     </div>

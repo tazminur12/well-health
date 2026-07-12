@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { X } from "lucide-react";
 
+import { LogoutButton } from "@/components/auth/logout-button";
 import {
   customerLogoutItem,
   customerNavItems,
@@ -97,14 +98,13 @@ export function MobileNavDrawer({ open, pathname, onClose }: MobileNavDrawerProp
         </nav>
 
         <div className="border-t border-neutral-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <Link
+          <LogoutButton
             className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-600 px-4 py-3 text-sm font-semibold text-red-600 transition-colors duration-200 active:bg-red-50"
-            href={customerLogoutItem.href}
             onClick={onClose}
           >
             <LogoutIcon className="h-4 w-4" />
             {customerLogoutItem.label}
-          </Link>
+          </LogoutButton>
         </div>
       </aside>
     </div>

@@ -12,6 +12,8 @@ type FilterDrawerProps = {
   selectedAvailability: Availability[];
   minPrice: number;
   maxPrice: number;
+  priceCeiling?: number;
+  categoryCounts?: Partial<Record<Category, number>>;
   onCategoryChange: (category: Category) => void;
   onAvailabilityToggle: (availability: Availability) => void;
   onPriceChange: (range: [number, number]) => void;
@@ -25,6 +27,8 @@ export function FilterDrawer({
   selectedAvailability,
   minPrice,
   maxPrice,
+  priceCeiling,
+  categoryCounts,
   onCategoryChange,
   onAvailabilityToggle,
   onPriceChange,
@@ -56,12 +60,14 @@ export function FilterDrawer({
 
         <div className="p-4">
           <ProductFilters
+            categoryCounts={categoryCounts}
             maxPrice={maxPrice}
             minPrice={minPrice}
             onAvailabilityToggle={onAvailabilityToggle}
             onCategoryChange={onCategoryChange}
             onClearAll={onClearAll}
             onPriceChange={onPriceChange}
+            priceCeiling={priceCeiling}
             selectedAvailability={selectedAvailability}
             selectedCategory={selectedCategory}
           />

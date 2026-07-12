@@ -2,26 +2,28 @@
 
 import { useMemo } from "react";
 
-type Availability = "in-stock" | "out-of-stock";
-type Category = "all" | "eye-care" | "brain-health" | "omega" | "vitamins";
+export type Availability = "in-stock" | "out-of-stock";
+export type Category = "all" | "eye-care" | "brain-health" | "omega" | "vitamins";
 
 type ProductFiltersProps = {
   selectedCategory: Category;
   selectedAvailability: Availability[];
   minPrice: number;
   maxPrice: number;
+  priceCeiling?: number;
+  categoryCounts?: Partial<Record<Category, number>>;
   onCategoryChange: (category: Category) => void;
   onAvailabilityToggle: (availability: Availability) => void;
   onPriceChange: (range: [number, number]) => void;
   onClearAll: () => void;
 };
 
-const categories: Array<{ value: Category; label: string; count: number }> = [
-  { value: "all", label: "All Products", count: 24 },
-  { value: "eye-care", label: "Eye Care", count: 6 },
-  { value: "brain-health", label: "Brain Health", count: 5 },
-  { value: "omega", label: "Omega", count: 7 },
-  { value: "vitamins", label: "Vitamins", count: 6 },
+const categoryMeta: Array<{ value: Category; label: string }> = [
+  { value: "all", label: "All Products" },
+  { value: "eye-care", label: "Eye Care" },
+  { value: "brain-health", label: "Brain Health" },
+  { value: "omega", label: "Omega" },
+  { value: "vitamins", label: "Vitamins" },
 ];
 
 export function ProductFilters({
@@ -29,6 +31,8 @@ export function ProductFilters({
   selectedAvailability,
   minPrice,
   maxPrice,
+  priceCeiling = 3000,
+  categoryCounts,
   onCategoryChange,
   onAvailabilityToggle,
   onPriceChange,
@@ -49,11 +53,15 @@ export function ProductFilters({
           </h3>
 
           <div className="mt-4 space-y-3">
-            {categories.map(({ value, label, count }) => {
+            {categoryMeta.map(({ value, label }) => {
               const checked = selectedCategory === value;
+              const count = categoryCounts?.[value];
 
               return (
-                <label key={value} className="flex cursor-pointer items-center justify-between gap-4 text-sm text-neutral-700">
+                <label
+                  key={value}
+                  className="flex cursor-pointer items-center justify-between gap-4 text-sm text-neutral-700"
+                >
                   <span className="flex items-center gap-3">
                     <input
                       checked={checked}
@@ -64,7 +72,9 @@ export function ProductFilters({
                     />
                     <span>{label}</span>
                   </span>
-                  <span className="text-xs text-neutral-500">({count})</span>
+                  {typeof count === "number" ? (
+                    <span className="text-xs text-neutral-500">({count})</span>
+                  ) : null}
                 </label>
               );
             })}
@@ -84,22 +94,26 @@ export function ProductFilters({
 
             <div className="space-y-3">
               <input
-                className="w-full accent-brand-green-600"
-                max={3000}
-                min={0}
                 aria-label="Minimum price range"
+                className="w-full accent-brand-green-600"
+                max={priceCeiling}
+                min={0}
+                onChange={(event) =>
+                  onPriceChange([Math.min(Number(event.target.value), maxPrice), maxPrice])
+                }
                 title="Minimum price range"
-                onChange={(event) => onPriceChange([Math.min(Number(event.target.value), maxPrice), maxPrice])}
                 type="range"
                 value={minPrice}
               />
               <input
-                className="w-full accent-brand-green-600"
-                max={3000}
-                min={0}
                 aria-label="Maximum price range"
+                className="w-full accent-brand-green-600"
+                max={priceCeiling}
+                min={0}
+                onChange={(event) =>
+                  onPriceChange([minPrice, Math.max(Number(event.target.value), minPrice)])
+                }
                 title="Maximum price range"
-                onChange={(event) => onPriceChange([minPrice, Math.max(Number(event.target.value), minPrice)])}
                 type="range"
                 value={maxPrice}
               />
@@ -110,7 +124,7 @@ export function ProductFilters({
                 <span>Min</span>
                 <input
                   className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none transition-colors duration-200 focus:border-brand-green-600 focus:ring-4 focus:ring-brand-green-100"
-                  max={3000}
+                  max={priceCeiling}
                   min={0}
                   onChange={(event) => onPriceChange([Number(event.target.value), maxPrice])}
                   type="number"
@@ -121,7 +135,7 @@ export function ProductFilters({
                 <span>Max</span>
                 <input
                   className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none transition-colors duration-200 focus:border-brand-green-600 focus:ring-4 focus:ring-brand-green-100"
-                  max={3000}
+                  max={priceCeiling}
                   min={0}
                   onChange={(event) => onPriceChange([minPrice, Number(event.target.value)])}
                   type="number"
@@ -170,5 +184,3 @@ export function ProductFilters({
     </aside>
   );
 }
-
-export type { Availability, Category };

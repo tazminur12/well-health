@@ -1,13 +1,33 @@
-import { Facebook, Instagram, Linkedin, MapPin, Youtube } from "lucide-react";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  MapPin,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 
-const socialLinks = [
-  { label: "Facebook", icon: Facebook },
-  { label: "Instagram", icon: Instagram },
-  { label: "LinkedIn", icon: Linkedin },
-  { label: "YouTube", icon: Youtube },
+import {
+  formatStoreAddress,
+  type StoreSettings,
+} from "@/lib/settings/schemas";
+
+const socialConfig: { key: keyof StoreSettings; label: string; icon: LucideIcon }[] = [
+  { key: "facebookUrl", label: "Facebook", icon: Facebook },
+  { key: "instagramUrl", label: "Instagram", icon: Instagram },
+  { key: "linkedinUrl", label: "LinkedIn", icon: Linkedin },
+  { key: "youtubeUrl", label: "YouTube", icon: Youtube },
 ];
 
-export function MapCard() {
+type MapCardProps = {
+  settings: StoreSettings;
+};
+
+export function MapCard({ settings }: MapCardProps) {
+  const address = formatStoreAddress(settings);
+  const mapsHref = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+  const socialLinks = socialConfig.filter((item) => Boolean(settings[item.key]));
+
   return (
     <div className="space-y-4">
       <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-md">
@@ -25,9 +45,11 @@ export function MapCard() {
               </div>
               <div>
                 <p className="text-base font-semibold text-neutral-900">
-                  Well Health Trade International
+                  {settings.storeName}
                 </p>
-                <p className="mt-1 text-sm text-neutral-500">Dhaka, Bangladesh</p>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {settings.city}, {settings.country}
+                </p>
               </div>
             </div>
           </div>
@@ -37,40 +59,46 @@ export function MapCard() {
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-green-600" />
               <div>
                 <p className="text-sm font-semibold text-neutral-900">
-                  Well Health Trade International
+                  {settings.storeName}
                 </p>
-                <p className="text-xs text-neutral-500">Dhaka, Bangladesh</p>
+                <p className="text-xs text-neutral-500">{address}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <button
+      <a
         className="inline-flex w-full items-center justify-center rounded-lg border border-brand-green-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-green-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-100 hover:shadow-sm"
-        type="button"
+        href={mapsHref}
+        rel="noopener noreferrer"
+        target="_blank"
       >
         Get Directions
-      </button>
+      </a>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm font-semibold text-neutral-900">Follow Us</p>
+      {socialLinks.length > 0 ? (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm font-semibold text-neutral-900">Follow Us</p>
 
-          <div className="flex items-center gap-2">
-            {socialLinks.map(({ label, icon: Icon }) => (
-              <button
-                key={label}
-                aria-label={label}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-green-100 text-brand-green-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-600 hover:text-white hover:shadow-sm"
-                type="button"
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
+            <div className="flex items-center gap-2">
+              {socialLinks.map(({ key, label, icon: Icon }) => (
+                <a
+                  key={label}
+                  aria-label={label}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-green-100 text-brand-green-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-600 hover:text-white hover:shadow-sm"
+                  href={String(settings[key])}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

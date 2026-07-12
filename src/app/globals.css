@@ -78,3 +78,84 @@
     display: none;
   }
 }
+
+/* SweetAlert2 — Clinical Premium auth theme */
+.auth-swal-popup {
+  width: min(92vw, 26rem) !important;
+  border-radius: 1rem !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 18px 50px rgba(11, 77, 58, 0.12) !important;
+  padding: 1.75rem 1.5rem 1.5rem !important;
+  font-family: var(--font-body), Inter, system-ui, sans-serif !important;
+}
+
+.auth-swal-title {
+  font-family: var(--font-heading), Sora, system-ui, sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: #1a1d1f !important;
+  margin: 0.5rem 0 0.35rem !important;
+}
+
+.auth-swal-html {
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+  color: #6b7280 !important;
+  margin: 0 !important;
+}
+
+.auth-swal-actions {
+  margin-top: 1.25rem !important;
+  gap: 0.5rem !important;
+}
+
+.auth-swal-confirm {
+  min-height: 2.75rem !important;
+  border-radius: 0.75rem !important;
+  background: #16875d !important;
+  color: #fff !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  padding: 0.65rem 1.25rem !important;
+  box-shadow: 0 1px 2px rgba(11, 77, 58, 0.12) !important;
+}
+
+.auth-swal-confirm:hover {
+  background: #0b4d3a !important;
+}
+
+.auth-swal-cancel {
+  min-height: 2.75rem !important;
+  border-radius: 0.75rem !important;
+  background: #fff !important;
+  color: #1a1d1f !important;
+  border: 1px solid #e5e7eb !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  padding: 0.65rem 1.25rem !important;
+}
+
+.auth-swal-icon {
+  margin: 0.25rem auto 0.5rem !important;
+  border-width: 2px !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: #16875d !important;
+  color: #16875d !important;
+}
+
+.swal2-icon.swal2-success [class^="swal2-success-line"],
+.swal2-icon.swal2-success .swal2-success-ring {
+  background-color: #16875d !important;
+  border-color: #16875d !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: #dc2626 !important;
+  color: #dc2626 !important;
+}
+
+.swal2-timer-progress-bar {
+  background: #16875d !important;
+}

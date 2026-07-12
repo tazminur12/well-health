@@ -20,28 +20,31 @@ export const AuthInput = React.forwardRef<HTMLInputElement, AuthInputProps>(
 
     return (
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-700" htmlFor={inputId}>
+        <label className="text-sm font-medium text-neutral-800" htmlFor={inputId}>
           {label}
         </label>
 
         <div
           className={cn(
-            "flex h-11 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 transition-all duration-200",
-            "focus-within:border-brand-green-600 focus-within:ring-2 focus-within:ring-brand-green-100",
+            "flex min-h-12 items-center gap-2.5 rounded-xl border border-neutral-200 bg-[#F7F8F9] px-3.5 transition-all duration-200",
+            "focus-within:border-brand-green-600 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-green-100",
             error && "border-red-300 focus-within:border-red-500 focus-within:ring-red-100"
           )}
         >
-          {Icon ? <Icon className="h-4 w-4 shrink-0 text-neutral-500" /> : null}
+          {Icon ? <Icon className="h-4 w-4 shrink-0 text-neutral-400" /> : null}
 
           {prefixBadge ? (
-            <span className="inline-flex h-6 items-center rounded-md bg-neutral-100 px-2 text-xs font-medium text-neutral-600">
+            <span className="inline-flex h-7 items-center rounded-lg bg-white px-2 text-xs font-semibold text-neutral-600 ring-1 ring-neutral-200">
               {prefixBadge}
             </span>
           ) : null}
 
           <input
             {...props}
-            className={cn("h-full w-full border-none bg-transparent p-0 text-sm text-neutral-800 outline-none", className)}
+            className={cn(
+              "h-full w-full border-none bg-transparent p-0 text-sm text-neutral-900 outline-none placeholder:text-neutral-400",
+              className
+            )}
             id={inputId}
             ref={ref}
           />

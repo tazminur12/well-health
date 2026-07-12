@@ -3,43 +3,33 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, Lock, Mail, Phone, User } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { AuthInput } from "@/components/auth/auth-input";
-import { AuthToast } from "@/components/auth/auth-toast";
 import { PasswordStrengthIndicator } from "@/components/auth/password-strength-indicator";
-import { Button } from "@/components/ui/button";
-
-const registerSchema = z
-  .object({
-    fullName: z.string().min(2, "Please enter your full name"),
-    email: z.string().min(1, "Email is required").email("Please enter a valid email"),
-    phone: z.string().min(9, "Enter a valid phone number"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-    acceptTerms: z.boolean().optional(),
-  })
-  .refine((values) => values.password === values.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
-
-type RegisterFormValues = z.infer<typeof registerSchema>;
+import { registerAction } from "@/lib/auth/actions";
+import {
+  closeAuthAlert,
+  showAuthError,
+  showAuthLoading,
+  showAuthSuccess,
+} from "@/lib/auth/alerts";
+import { registerSchema, type RegisterInput } from "@/lib/auth/schemas";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<RegisterFormValues>({
+  } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       fullName: "",
@@ -54,149 +44,165 @@ export default function RegisterPage() {
   const password = watch("password") ?? "";
   const acceptedTerms = Boolean(watch("acceptTerms"));
 
-  useEffect(() => {
-    if (!toastMessage) return;
-    const timer = setTimeout(() => setToastMessage(null), 2400);
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
+  function onSubmit(values: RegisterInput) {
+    startTransition(async () => {
+      try {
+        void showAuthLoading("Creating your account...");
+        const result = await registerAction(values);
 
-  async function onSubmit(values: RegisterFormValues) {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 950));
-    console.log("Register submit stub", values);
-    setLoading(false);
-    setToastMessage("Account created successfully!");
+        if (result?.error) {
+          closeAuthAlert();
+          await showAuthError("Registration failed", result.error);
+          return;
+        }
+
+        if (result?.success) {
+          closeAuthAlert();
+          await showAuthSuccess("Account created", result.success);
+          router.push("/login");
+          return;
+        }
+
+        closeAuthAlert();
+        await showAuthSuccess("Welcome to Well Health", "Your account is ready.");
+        router.refresh();
+      } catch {
+        closeAuthAlert();
+        // Server redirect on successful signup with active session.
+      }
+    });
   }
 
   return (
-    <>
+    <div className="space-y-5 sm:space-y-6">
       <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold text-neutral-900">Create Account</h1>
-        <p className="text-sm text-neutral-500">Join us for a healthier tomorrow</p>
+        <h1 className="font-heading text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+          Create account
+        </h1>
+        <p className="text-sm leading-6 text-neutral-500">
+          Join Well Health for trusted supplements and easy order tracking.
+        </p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+      <form className="space-y-3.5 sm:space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
         <AuthInput
+          autoComplete="name"
+          error={errors.fullName?.message}
           icon={User}
           label="Full Name"
           placeholder="Your full name"
           type="text"
           {...register("fullName")}
-          error={errors.fullName?.message}
         />
 
         <AuthInput
+          autoComplete="email"
+          error={errors.email?.message}
           icon={Mail}
           label="Email"
           placeholder="you@example.com"
           type="email"
           {...register("email")}
-          error={errors.email?.message}
         />
 
         <AuthInput
+          autoComplete="tel"
+          error={errors.phone?.message}
           icon={Phone}
+          inputMode="tel"
           label="Phone Number"
           placeholder="1XXXXXXXXX"
+          prefixBadge="+880"
           type="tel"
           {...register("phone")}
-          error={errors.phone?.message}
-          prefixBadge="+880"
         />
 
         <div className="space-y-2">
           <AuthInput
+            autoComplete="new-password"
+            error={errors.password?.message}
             icon={Lock}
             label="Password"
             placeholder="Create a password"
-            type={showPassword ? "text" : "password"}
-            {...register("password")}
-            error={errors.password?.message}
             rightSlot={
               <button
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 active:bg-neutral-100 hover:bg-white hover:text-neutral-800"
                 onClick={() => setShowPassword((current) => !current)}
                 type="button"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             }
+            type={showPassword ? "text" : "password"}
+            {...register("password")}
           />
-
           <PasswordStrengthIndicator password={password} />
         </div>
 
         <AuthInput
+          autoComplete="new-password"
+          error={errors.confirmPassword?.message}
           icon={Lock}
           label="Confirm Password"
           placeholder="Re-enter password"
-          type={showConfirmPassword ? "text" : "password"}
-          {...register("confirmPassword")}
-          error={errors.confirmPassword?.message}
           rightSlot={
             <button
-              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+              aria-label={
+                showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+              }
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 active:bg-neutral-100 hover:bg-white hover:text-neutral-800"
               onClick={() => setShowConfirmPassword((current) => !current)}
               type="button"
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           }
+          type={showConfirmPassword ? "text" : "password"}
+          {...register("confirmPassword")}
         />
 
-        <label className="inline-flex items-start gap-2.5 text-sm text-neutral-600">
-          <input
-            className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-brand-green-600 focus:ring-brand-green-600"
-            type="checkbox"
-            {...register("acceptTerms")}
-          />
-          <span>
-            I agree to the{" "}
-            <Link className="font-medium text-brand-green-600 underline" href="#">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link className="font-medium text-brand-green-600 underline" href="#">
-              Privacy Policy
-            </Link>
-          </span>
-        </label>
+        <div className="space-y-1.5">
+          <label className="inline-flex cursor-pointer items-start gap-2.5 text-sm leading-6 text-neutral-600">
+            <input
+              className="mt-1 h-4 w-4 rounded border-neutral-300 text-brand-green-600 focus:ring-brand-green-600"
+              type="checkbox"
+              {...register("acceptTerms")}
+            />
+            <span>
+              I agree to the{" "}
+              <Link className="font-semibold text-brand-green-600 hover:text-brand-green-900" href="#">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link className="font-semibold text-brand-green-600 hover:text-brand-green-900" href="#">
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
+          {errors.acceptTerms ? (
+            <p className="text-xs text-red-600">{errors.acceptTerms.message}</p>
+          ) : null}
+        </div>
 
-        <Button
-          className="h-12 w-full rounded-lg bg-brand-green-600 text-white hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md disabled:translate-y-0"
-          disabled={!acceptedTerms || loading}
+        <button
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand-green-600 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 active:scale-[0.99] active:bg-brand-green-900 hover:bg-brand-green-900 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={!acceptedTerms || isPending}
           type="submit"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "CREATE ACCOUNT"}
-        </Button>
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+        </button>
       </form>
-
-      <div className="relative py-1">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-neutral-200" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-3 text-xs text-neutral-400">OR</span>
-        </div>
-      </div>
-
-      <Button className="h-11 w-full rounded-lg border-neutral-200 bg-white" type="button" variant="outline">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-700">
-          G
-        </span>
-        Continue with Google
-      </Button>
 
       <p className="text-center text-sm text-neutral-500">
         Already have an account?{" "}
-        <Link className="font-semibold text-brand-green-600 hover:underline" href="/login">
-          Sign In
+        <Link
+          className="font-semibold text-brand-green-600 transition-colors duration-200 hover:text-brand-green-900"
+          href="/login"
+        >
+          Sign in
         </Link>
       </p>
-
-      <AuthToast message={toastMessage} onClose={() => setToastMessage(null)} />
-    </>
+    </div>
   );
 }

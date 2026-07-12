@@ -3,32 +3,44 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { AuthInput } from "@/components/auth/auth-input";
-import { AuthToast } from "@/components/auth/auth-toast";
-import { Button } from "@/components/ui/button";
+import { loginAction } from "@/lib/auth/actions";
+import { showAuthError, showAuthSuccess } from "@/lib/auth/alerts";
+import { loginSchema, type LoginInput } from "@/lib/auth/schemas";
 
-const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  remember: z.boolean().optional(),
-});
+/** Temporary demo accounts — remove before production. */
+const DEMO_ACCOUNTS = [
+  {
+    label: "Customer",
+    email: "customer@wellhealth.demo",
+    password: "Demo@1234",
+  },
+  {
+    label: "Admin",
+    email: "admin@wellhealth.demo",
+    password: "Demo@1234",
+  },
+] as const;
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") ?? undefined;
+  const resetSuccess = searchParams.get("reset") === "success";
 
-export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm<LoginFormValues>({
+  } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -38,57 +50,101 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (!toastMessage) return;
-    const timer = setTimeout(() => setToastMessage(null), 2400);
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
+    if (!resetSuccess) return;
+    void showAuthSuccess(
+      "Password updated",
+      "Please sign in with your new password to continue."
+    );
+  }, [resetSuccess]);
 
-  async function onSubmit(values: LoginFormValues) {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    console.log("Login submit stub", values);
-    setLoading(false);
-    setToastMessage("Signed in successfully!");
+  function fillDemo(email: string, password: string) {
+    setValue("email", email, { shouldValidate: true, shouldDirty: true });
+    setValue("password", password, { shouldValidate: true, shouldDirty: true });
+  }
+
+  function onSubmit(values: LoginInput) {
+    startTransition(async () => {
+      try {
+        const result = await loginAction(values, nextPath);
+        if (result?.error) {
+          await showAuthError("Sign in failed", result.error);
+          return;
+        }
+        await showAuthSuccess("Welcome back", "You have signed in successfully.");
+        router.refresh();
+      } catch {
+        // Server redirect on successful login — expected.
+      }
+    });
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-bold text-neutral-900">Welcome Back</h1>
-        <p className="text-sm text-neutral-500">Sign in to continue to your account</p>
+        <h1 className="font-heading text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+          Welcome back
+        </h1>
+        <p className="text-sm leading-6 text-neutral-500">
+          Sign in to continue to your Well Health account.
+        </p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+      {/* TODO: remove demo login block before production */}
+      <div className="rounded-xl border border-dashed border-brand-green-600/30 bg-brand-green-100/50 p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-green-900">
+          Demo login (temporary)
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {DEMO_ACCOUNTS.map((account) => (
+            <button
+              key={account.email}
+              className="rounded-lg border border-brand-green-600/20 bg-white px-3 py-2.5 text-left transition-colors duration-200 hover:border-brand-green-600 hover:bg-white active:bg-brand-green-100"
+              onClick={() => fillDemo(account.email, account.password)}
+              type="button"
+            >
+              <span className="block text-sm font-semibold text-neutral-900">{account.label}</span>
+              <span className="mt-0.5 block truncate text-[11px] text-neutral-500">
+                {account.email}
+              </span>
+              <span className="mt-0.5 block text-[11px] text-neutral-400">{account.password}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
         <AuthInput
+          autoComplete="email"
+          error={errors.email?.message}
           icon={Mail}
           label="Email"
           placeholder="you@example.com"
           type="email"
           {...register("email")}
-          error={errors.email?.message}
         />
 
         <AuthInput
+          autoComplete="current-password"
+          error={errors.password?.message}
           icon={Lock}
           label="Password"
           placeholder="Enter your password"
-          type={showPassword ? "text" : "password"}
-          {...register("password")}
-          error={errors.password?.message}
           rightSlot={
             <button
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 active:bg-neutral-100 hover:bg-white hover:text-neutral-800"
               onClick={() => setShowPassword((current) => !current)}
               type="button"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           }
+          type={showPassword ? "text" : "password"}
+          {...register("password")}
         />
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="inline-flex items-center gap-2 text-neutral-600">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <label className="inline-flex min-h-10 cursor-pointer items-center gap-2.5 text-neutral-600">
             <input
               className="h-4 w-4 rounded border-neutral-300 text-brand-green-600 focus:ring-brand-green-600"
               type="checkbox"
@@ -97,44 +153,46 @@ export default function LoginPage() {
             Remember me
           </label>
 
-          <Link className="font-medium text-brand-green-600 hover:underline" href="#">
-            Forgot Password?
+          <Link
+            className="font-semibold text-brand-green-600 transition-colors duration-200 hover:text-brand-green-900"
+            href="/forgot-password"
+          >
+            Forgot password?
           </Link>
         </div>
 
-        <Button
-          className="h-12 w-full rounded-lg bg-brand-green-600 text-white hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md disabled:translate-y-0"
-          disabled={loading}
+        <button
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand-green-600 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 active:scale-[0.99] active:bg-brand-green-900 hover:bg-brand-green-900 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isPending}
           type="submit"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "SIGN IN"}
-        </Button>
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
+        </button>
       </form>
-
-      <div className="relative py-1">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-neutral-200" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-3 text-xs text-neutral-400">OR</span>
-        </div>
-      </div>
-
-      <Button className="h-11 w-full rounded-lg border-neutral-200 bg-white" type="button" variant="outline">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-700">
-          G
-        </span>
-        Continue with Google
-      </Button>
 
       <p className="text-center text-sm text-neutral-500">
         Don&apos;t have an account?{" "}
-        <Link className="font-semibold text-brand-green-600 hover:underline" href="/register">
-          Sign Up
+        <Link
+          className="font-semibold text-brand-green-600 transition-colors duration-200 hover:text-brand-green-900"
+          href="/register"
+        >
+          Create account
         </Link>
       </p>
+    </div>
+  );
+}
 
-      <AuthToast message={toastMessage} onClose={() => setToastMessage(null)} />
-    </>
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[240px] items-center justify-center text-sm text-neutral-500">
+          Loading...
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

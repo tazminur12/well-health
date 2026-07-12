@@ -1,132 +1,57 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Pencil } from "lucide-react";
+import Link from "next/link";
 
+import {
+  type AdminCustomer,
+  customerAvatarTone,
+  customerInitials,
+  customerStatusPillClass,
+  customerTagPillClass,
+  formatCustomerDate,
+  formatCustomerPrice,
+  formatRelativeDays,
+} from "@/components/admin/customers-data";
 import { cn } from "@/lib/utils";
-
-export type CustomerOrderHistoryItem = {
-  id: string;
-  orderNumber: string;
-  date: string;
-  itemCount: number;
-  total: number;
-  status: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-};
-
-export type CustomerAddress = {
-  id: string;
-  label: string;
-  line1: string;
-  line2?: string;
-  area?: string;
-  city: string;
-  postalCode: string;
-  isDefault?: boolean;
-};
-
-export type CustomerTag = "VIP" | "New" | null;
-
-export type AdminCustomer = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  totalOrders: number;
-  totalSpent: number;
-  lastOrderAt: string;
-  joinedAt: string;
-  tag: CustomerTag;
-  addresses: CustomerAddress[];
-  orderHistory: CustomerOrderHistoryItem[];
-};
 
 type AdminCustomersTableProps = {
   customers: AdminCustomer[];
-  totalCustomers: number;
+  totalFiltered: number;
+  page: number;
   pageSize: number;
+  onPageChange: (page: number) => void;
   onPageSizeChange: (value: number) => void;
-  onView: (customer: AdminCustomer) => void;
 };
-
-const avatarTones = [
-  "bg-[linear-gradient(135deg,#e8f5ee_0%,#cfe8dc_100%)] text-brand-green-700",
-  "bg-[linear-gradient(135deg,#edf5ff_0%,#dbe8fb_100%)] text-blue-700",
-  "bg-[linear-gradient(135deg,#fff4e8_0%,#f7e1c6_100%)] text-amber-700",
-  "bg-[linear-gradient(135deg,#f3f0ff_0%,#e2dafb_100%)] text-purple-700",
-  "bg-[linear-gradient(135deg,#ffeef0_0%,#f8dce0_100%)] text-rose-700",
-];
-
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("en-BD", {
-    style: "currency",
-    currency: "BDT",
-    minimumFractionDigits: 2,
-  })
-    .format(value)
-    .replace("BDT", "৳");
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-}
-
-function formatRelativeDays(value: string) {
-  const now = Date.now();
-  const then = new Date(value).getTime();
-  const dayDiff = Math.max(1, Math.floor((now - then) / (1000 * 60 * 60 * 24)));
-  return dayDiff === 1 ? "1 day ago" : `${dayDiff} days ago`;
-}
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
-function getAvatarTone(name: string) {
-  const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return avatarTones[hash % avatarTones.length];
-}
-
-export function customerTagPillClass(tag: CustomerTag) {
-  if (tag === "VIP") {
-    return "bg-gold-accent/20 text-gold-accent";
-  }
-
-  if (tag === "New") {
-    return "bg-brand-green-100 text-brand-green-700";
-  }
-
-  return "";
-}
 
 export function AdminCustomersTable({
   customers,
-  totalCustomers,
+  totalFiltered,
+  page,
   pageSize,
+  onPageChange,
   onPageSizeChange,
-  onView,
 }: AdminCustomersTableProps) {
-  const showingEnd = customers.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const showingStart = totalFiltered === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const showingEnd = Math.min(safePage * pageSize, totalFiltered);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="min-w-[1120px] w-full text-left">
+        <table className="min-w-[1080px] w-full text-left">
           <thead className="border-b border-neutral-200 bg-neutral-50/70 text-xs uppercase tracking-wide text-neutral-500">
             <tr>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3 text-center">Orders</th>
-              <th className="px-4 py-3 text-right">Total Spent</th>
-              <th className="px-4 py-3">Last Order</th>
-              <th className="px-4 py-3">Joined</th>
-              <th className="px-4 py-3">Tag</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3.5">Customer</th>
+              <th className="px-4 py-3.5">Phone</th>
+              <th className="px-4 py-3.5 text-center">Orders</th>
+              <th className="px-4 py-3.5 text-right">Total Spent</th>
+              <th className="px-4 py-3.5">Last Order</th>
+              <th className="px-4 py-3.5">Joined</th>
+              <th className="px-4 py-3.5">Status</th>
+              <th className="px-4 py-3.5">Tag</th>
+              <th className="px-4 py-3.5 text-right">Actions</th>
             </tr>
           </thead>
 
@@ -134,68 +59,93 @@ export function AdminCustomersTable({
             {customers.map((customer) => (
               <tr
                 key={customer.id}
-                className="cursor-pointer border-b border-neutral-100 text-sm hover:bg-neutral-100"
-                onClick={() => onView(customer)}
+                className="border-b border-neutral-100 text-sm transition-colors hover:bg-brand-green-100/30"
               >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
+                <td className="px-4 py-3.5">
+                  <Link className="flex items-center gap-3" href={`/admin/customers/${customer.id}`}>
                     <span
                       className={cn(
                         "inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold",
-                        getAvatarTone(customer.name)
+                        customerAvatarTone(customer.name)
                       )}
                     >
-                      {getInitials(customer.name)}
+                      {customerInitials(customer.name)}
                     </span>
-
-                    <div>
-                      <p className="font-semibold text-neutral-900">{customer.name}</p>
-                      <p className="text-xs text-neutral-500">{customer.email}</p>
-                    </div>
-                  </div>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold text-neutral-900">
+                        {customer.name}
+                      </span>
+                      <span className="block truncate text-xs text-neutral-500">
+                        {customer.email}
+                      </span>
+                    </span>
+                  </Link>
                 </td>
 
-                <td className="px-4 py-3 text-neutral-700">{customer.phone}</td>
+                <td className="px-4 py-3.5 text-neutral-700">{customer.phone}</td>
 
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-3.5 text-center">
                   <span className="inline-flex rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
                     {customer.totalOrders}
                   </span>
                 </td>
 
-                <td className="px-4 py-3 text-right font-semibold text-brand-green-600">
-                  {formatPrice(customer.totalSpent)}
+                <td className="px-4 py-3.5 text-right font-semibold text-brand-green-600">
+                  {formatCustomerPrice(customer.totalSpent)}
                 </td>
 
-                <td className="px-4 py-3 text-neutral-700">{formatRelativeDays(customer.lastOrderAt)}</td>
+                <td className="px-4 py-3.5 text-neutral-700">
+                  {formatRelativeDays(customer.lastOrderAt)}
+                </td>
 
-                <td className="px-4 py-3 text-neutral-700">{formatDate(customer.joinedAt)}</td>
+                <td className="px-4 py-3.5 text-neutral-700">
+                  {formatCustomerDate(customer.joinedAt)}
+                </td>
 
-                <td className="px-4 py-3">
+                <td className="px-4 py-3.5">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                      customerStatusPillClass(customer.status)
+                    )}
+                  >
+                    {customer.status}
+                  </span>
+                </td>
+
+                <td className="px-4 py-3.5">
                   {customer.tag ? (
-                    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", customerTagPillClass(customer.tag))}>
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                        customerTagPillClass(customer.tag)
+                      )}
+                    >
                       {customer.tag}
                     </span>
                   ) : (
-                    <span className="inline-flex h-5 w-8" />
+                    <span className="text-xs text-neutral-400">—</span>
                   )}
                 </td>
 
-                <td className="px-4 py-3">
-                  <div className="flex justify-end">
-                    <button
-                      aria-label={`View details for ${customer.name}`}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200/70 hover:text-neutral-900"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onView(customer);
-                      }}
-                      title="View Details"
-                      type="button"
+                <td className="px-4 py-3.5">
+                  <div className="flex justify-end gap-1">
+                    <Link
+                      aria-label={`View ${customer.name}`}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                      href={`/admin/customers/${customer.id}`}
                     >
-                      <Eye className="h-4 w-4" />
-                      View Details
-                    </button>
+                      <Eye className="h-3.5 w-3.5" />
+                      View
+                    </Link>
+                    <Link
+                      aria-label={`Edit ${customer.name}`}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-brand-green-700 transition-colors hover:bg-brand-green-100"
+                      href={`/admin/customers/${customer.id}/edit`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </Link>
                   </div>
                 </td>
               </tr>
@@ -203,7 +153,7 @@ export function AdminCustomersTable({
 
             {customers.length === 0 ? (
               <tr>
-                <td className="px-4 py-10 text-center text-sm text-neutral-500" colSpan={8}>
+                <td className="px-4 py-12 text-center text-sm text-neutral-500" colSpan={9}>
                   No customers found for the selected filters.
                 </td>
               </tr>
@@ -214,22 +164,26 @@ export function AdminCustomersTable({
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 px-4 py-3 text-sm text-neutral-500">
         <p>
-          Showing 1-{showingEnd} of {totalCustomers}
+          Showing {showingStart}–{showingEnd} of {totalFiltered}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             className="inline-flex h-9 items-center gap-1 rounded-lg border border-neutral-200 px-3 text-neutral-600 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled
+            disabled={safePage <= 1}
+            onClick={() => onPageChange(safePage - 1)}
             type="button"
           >
             <ChevronLeft className="h-4 w-4" />
             Prev
           </button>
-
+          <span className="px-2 text-neutral-600">
+            {safePage} / {totalPages}
+          </span>
           <button
             className="inline-flex h-9 items-center gap-1 rounded-lg border border-neutral-200 px-3 text-neutral-600 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={customers.length < pageSize}
+            disabled={safePage >= totalPages}
+            onClick={() => onPageChange(safePage + 1)}
             type="button"
           >
             Next
@@ -243,6 +197,7 @@ export function AdminCustomersTable({
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
               value={pageSize}
             >
+              <option value={8}>8</option>
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
@@ -252,20 +207,4 @@ export function AdminCustomersTable({
       </footer>
     </div>
   );
-}
-
-export function formatCustomerPrice(value: number) {
-  return formatPrice(value);
-}
-
-export function formatCustomerDate(value: string) {
-  return formatDate(value);
-}
-
-export function customerAvatarTone(name: string) {
-  return getAvatarTone(name);
-}
-
-export function customerInitials(name: string) {
-  return getInitials(name);
 }

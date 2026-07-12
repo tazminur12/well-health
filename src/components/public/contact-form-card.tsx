@@ -2,8 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Send } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+import { showAuthError, showAuthSuccess } from "@/lib/auth/alerts";
+import { submitContactMessageAction } from "@/lib/messages/actions";
 
 type ContactFormValues = {
   name: string;
@@ -14,11 +18,11 @@ type ContactFormValues = {
 };
 
 const contactFormSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email(),
-  subject: z.string().min(1),
-  message: z.string().min(1),
+  name: z.string().min(2, "Name is required"),
+  phone: z.string().min(8, "Phone is required"),
+  email: z.string().email("Enter a valid email"),
+  subject: z.string().min(2, "Subject is required"),
+  message: z.string().min(5, "Message is required"),
 });
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
@@ -33,7 +37,13 @@ const inputClassName =
   "w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-all duration-200 placeholder:text-neutral-400 focus:border-brand-green-600 focus:ring-4 focus:ring-brand-green-100";
 
 export function ContactFormCard() {
-  const { register, handleSubmit, reset } = useForm<ContactFormValues>({
+  const [submitting, setSubmitting] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
       name: "",
@@ -44,9 +54,21 @@ export function ContactFormCard() {
     },
   });
 
-  const onSubmit = (values: ContactFormValues) => {
-    console.log("Contact form submit", values);
-    reset();
+  const onSubmit = async (values: ContactFormValues) => {
+    setSubmitting(true);
+    try {
+      const result = await submitContactMessageAction({ ...values, source: "contact" });
+      if (result.error) {
+        await showAuthError("Couldn’t send", result.error);
+        return;
+      }
+      reset();
+      await showAuthSuccess("Message sent", result.success ?? "We’ll get back to you soon.");
+    } catch {
+      await showAuthError("Couldn’t send", "Please try again in a moment.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -60,28 +82,45 @@ export function ContactFormCard() {
         </p>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+      <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <FieldLabel htmlFor="name">Full Name</FieldLabel>
             <input className={inputClassName} id="name" placeholder="Your full name" {...register("name")} />
+            {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
           </div>
 
           <div>
             <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
             <input className={inputClassName} id="phone" placeholder="01XXXXXXXXX" {...register("phone")} />
+            {errors.phone ? <p className="mt-1 text-xs text-red-600">{errors.phone.message}</p> : null}
           </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <FieldLabel htmlFor="email">Email</FieldLabel>
-            <input className={inputClassName} id="email" placeholder="you@example.com" type="email" {...register("email")} />
+            <input
+              className={inputClassName}
+              id="email"
+              placeholder="you@example.com"
+              type="email"
+              {...register("email")}
+            />
+            {errors.email ? <p className="mt-1 text-xs text-red-600">{errors.email.message}</p> : null}
           </div>
 
           <div>
             <FieldLabel htmlFor="subject">Subject</FieldLabel>
-            <input className={inputClassName} id="subject" placeholder="How can we help?" {...register("subject")} />
+            <input
+              className={inputClassName}
+              id="subject"
+              placeholder="How can we help?"
+              {...register("subject")}
+            />
+            {errors.subject ? (
+              <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>
+            ) : null}
           </div>
         </div>
 
@@ -94,14 +133,18 @@ export function ContactFormCard() {
             rows={5}
             {...register("message")}
           />
+          {errors.message ? (
+            <p className="mt-1 text-xs text-red-600">{errors.message.message}</p>
+          ) : null}
         </div>
 
         <button
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-green-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-green-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-green-900 hover:shadow-md disabled:opacity-60"
+          disabled={submitting}
           type="submit"
         >
           <Send className="h-4 w-4" />
-          SEND MESSAGE
+          {submitting ? "Sending…" : "Send message"}
         </button>
       </form>
     </section>

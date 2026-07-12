@@ -1,54 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   AlignJustify,
+  BookOpen,
   Home,
   Info,
+  LayoutDashboard,
   Leaf,
   LogIn,
+  LogOut,
   Mail,
-  Package,
-  Search,
   ShoppingBag,
   ShoppingCart,
-  UserCircle2,
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 
+import {
+  NavLoginButton,
+  NavUserMenu,
+  type NavAuthUser,
+} from "@/components/public/nav-user-menu";
+import { logoutAction } from "@/lib/auth/actions";
 import { useCartStore } from "@/store/cart-store";
 import { cn } from "@/lib/utils";
 
 const navLinks: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/shop", label: "Shop", icon: ShoppingBag },
-  { href: "/our-products", label: "Our Products", icon: Package },
+  { href: "/blog", label: "Blog", icon: BookOpen },
   { href: "/about", label: "About Us", icon: Info },
   { href: "/contact", label: "Contact Us", icon: Mail },
 ];
 
-export function Navbar() {
+type NavbarProps = {
+  user?: NavAuthUser | null;
+};
+
+export function Navbar({ user = null }: NavbarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const itemCount = useCartStore((state) => state.itemCount);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoggingOut, startLogout] = useTransition();
 
   const isLinkActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
   const closeMenu = () => setIsMenuOpen(false);
-
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    const query = searchQuery.trim();
-    router.push(query ? `/shop?q=${encodeURIComponent(query)}` : "/shop");
-    closeMenu();
-  };
+  const dashboardHref = user?.role === "ADMIN" ? "/admin" : "/dashboard";
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
@@ -72,6 +75,20 @@ export function Navbar() {
       document.body.style.overflow = "";
     };
   }, [isMenuOpen]);
+
+  const mobileInitials = user
+    ? (() => {
+        const trimmed = user.name?.trim();
+        if (trimmed) {
+          const parts = trimmed.split(/\s+/).filter(Boolean);
+          if (parts.length >= 2) {
+            return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+          }
+          return trimmed.slice(0, 2).toUpperCase();
+        }
+        return user.email.slice(0, 2).toUpperCase();
+      })()
+    : "";
 
   return (
     <>
@@ -123,35 +140,7 @@ export function Navbar() {
           </nav>
 
           <div className="hidden items-center gap-3 xl:flex">
-            <form
-              className="flex h-11 w-[18rem] items-center gap-2 rounded-full bg-neutral-100 px-4 text-neutral-500 shadow-sm ring-1 ring-transparent transition hover:ring-brand-green-100 focus-within:ring-brand-green-600/30"
-              onSubmit={handleSearch}
-              role="search"
-            >
-              <button
-                aria-label="Search"
-                className="inline-flex shrink-0 items-center justify-center text-neutral-500 transition-colors duration-200 hover:text-brand-green-600"
-                type="submit"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-              <input
-                aria-label="Search site"
-                className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search products"
-                type="search"
-                value={searchQuery}
-              />
-            </form>
-
-            <Link
-              aria-label="My account"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm transition-all duration-200 hover:border-brand-green-600/20 hover:text-brand-green-600 active:scale-95"
-              href="/login"
-            >
-              <UserCircle2 className="h-5 w-5" />
-            </Link>
+            {user ? <NavUserMenu user={user} /> : <NavLoginButton />}
 
             <Link
               aria-label="Cart"
@@ -166,6 +155,18 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 xl:hidden">
+            {user ? (
+              <NavUserMenu compact user={user} />
+            ) : (
+              <Link
+                aria-label="Login"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-brand-green-600 px-3.5 text-sm font-semibold text-white shadow-sm transition-transform duration-200 active:scale-95"
+                href="/login"
+              >
+                Login
+              </Link>
+            )}
+
             <Link
               aria-label="Cart"
               className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-green-100 bg-white text-neutral-900 shadow-sm transition-transform duration-200 active:scale-95"
@@ -190,7 +191,6 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Drawer lives OUTSIDE the sticky/blurred header so fixed positioning works correctly */}
       <div
         aria-hidden={!isMenuOpen}
         className={cn(
@@ -214,9 +214,12 @@ export function Navbar() {
             isMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          {/* Brand header */}
           <div className="flex items-center justify-between gap-3 border-b border-brand-green-100/80 bg-white px-5 py-4">
-            <Link className="flex min-w-0 items-center gap-3 active:opacity-70" href="/" onClick={closeMenu}>
+            <Link
+              className="flex min-w-0 items-center gap-3 active:opacity-70"
+              href="/"
+              onClick={closeMenu}
+            >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-green-900 text-white shadow-sm">
                 <Leaf className="h-5 w-5" />
               </span>
@@ -240,32 +243,6 @@ export function Navbar() {
             </button>
           </div>
 
-          {/* Search */}
-          <div className="border-b border-brand-green-100/60 bg-white px-5 py-3">
-            <form
-              className="flex h-11 items-center gap-2 rounded-xl bg-neutral-100 px-3.5 ring-1 ring-transparent focus-within:ring-brand-green-600/30"
-              onSubmit={handleSearch}
-              role="search"
-            >
-              <button
-                aria-label="Search"
-                className="inline-flex shrink-0 text-neutral-500 active:text-brand-green-600"
-                type="submit"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-              <input
-                aria-label="Search products"
-                className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search products"
-                type="search"
-                value={searchQuery}
-              />
-            </form>
-          </div>
-
-          {/* Nav links — always visible, scroll if needed */}
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-brand-green-600">
               Explore
@@ -295,7 +272,7 @@ export function Navbar() {
                             : "bg-white text-neutral-600 shadow-sm ring-1 ring-neutral-200/80"
                         )}
                       >
-                        <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+                        <Icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="text-[15px] font-medium">{link.label}</span>
                     </Link>
@@ -305,29 +282,78 @@ export function Navbar() {
             </ul>
           </nav>
 
-          {/* Bottom account CTA */}
           <div className="border-t border-brand-green-100/80 bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
-            <p className="mb-3 text-sm text-neutral-500">
-              Sign in to track orders and manage your wishlist
-            </p>
-            <div className="grid gap-2.5">
-              <Link
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-brand-green-600 px-4 text-sm font-semibold text-brand-green-600 transition-colors duration-200 active:bg-brand-green-100"
-                href="/login"
-                onClick={closeMenu}
-              >
-                <LogIn className="h-4 w-4" />
-                Login
-              </Link>
-              <Link
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-4 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900"
-                href="/cart"
-                onClick={closeMenu}
-              >
-                <ShoppingCart className="h-4 w-4" />
-                View Cart ({itemCount})
-              </Link>
-            </div>
+            {user ? (
+              <>
+                <div className="mb-3 flex items-center gap-3 rounded-xl bg-brand-green-100/50 px-3 py-2.5">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-green-600 text-sm font-bold text-white">
+                    {mobileInitials}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-neutral-900">
+                      {user.name?.trim() || user.email}
+                    </p>
+                    <p className="truncate text-xs text-neutral-500">{user.email}</p>
+                  </div>
+                </div>
+                <div className="grid gap-2.5">
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-brand-green-600 px-4 text-sm font-semibold text-brand-green-600 transition-colors duration-200 active:bg-brand-green-100"
+                    href={dashboardHref}
+                    onClick={closeMenu}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                  <button
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition-colors duration-200 active:bg-red-50 disabled:opacity-60"
+                    disabled={isLoggingOut}
+                    onClick={() => {
+                      closeMenu();
+                      startLogout(async () => {
+                        await logoutAction();
+                      });
+                    }}
+                    type="button"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {isLoggingOut ? "Signing out…" : "Logout"}
+                  </button>
+                  <Link
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-4 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900"
+                    href="/cart"
+                    onClick={closeMenu}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    View Cart ({itemCount})
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-neutral-500">
+                  Sign in to track orders and manage your wishlist
+                </p>
+                <div className="grid gap-2.5">
+                  <Link
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-brand-green-600 px-4 text-sm font-semibold text-brand-green-600 transition-colors duration-200 active:bg-brand-green-100"
+                    href="/login"
+                    onClick={closeMenu}
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Login
+                  </Link>
+                  <Link
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-4 text-sm font-semibold text-white transition-colors duration-200 active:bg-brand-green-900"
+                    href="/cart"
+                    onClick={closeMenu}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    View Cart ({itemCount})
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </aside>
       </div>
