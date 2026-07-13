@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
-  DollarSign,
   ExternalLink,
   LayoutDashboard,
   LogOut,
@@ -35,23 +34,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AdminNotificationBell } from "@/components/admin/admin-notification-bell";
 import { useAdminMessagesUnreadCount } from "@/hooks/use-admin-messages";
-import { useAdminOrders } from "@/hooks/use-admin-orders";
 import type { AuthUser } from "@/lib/auth/session";
-import { formatPrice } from "@/lib/format-price";
 import { cn } from "@/lib/utils";
 
 type AdminNavItem = {
@@ -654,208 +641,5 @@ function AdminTopbar({ collapsed, section, user, onToggleCollapse }: TopbarProps
         </div>
       </div>
     </header>
-  );
-}
-
-type AdminStatCardProps = {
-  icon: typeof DollarSign;
-  iconClassName: string;
-  label: string;
-  value: string;
-  trend: string;
-  trendTone?: "positive" | "negative" | "amber";
-};
-
-export function AdminStatCard({ icon: Icon, iconClassName, label, value, trend, trendTone = "positive" }: AdminStatCardProps) {
-  const toneClasses =
-    trendTone === "negative"
-      ? "text-red-600"
-      : trendTone === "amber"
-        ? "text-gold-accent"
-        : "text-brand-green-600";
-
-  return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-full", iconClassName)}>
-          <Icon className="h-5 w-5 text-white" />
-        </div>
-
-        <div>
-          <p className="text-sm text-neutral-500">{label}</p>
-          <p className="mt-1 font-heading text-2xl font-bold tracking-tight text-neutral-900">{value}</p>
-        </div>
-
-        {trendTone === "amber" ? (
-          <p className="text-sm font-medium text-gold-accent">{trend}</p>
-        ) : (
-          <p className={cn("flex items-center gap-1 text-sm font-medium", toneClasses)}>
-            {trendTone === "negative" ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4 rotate-[-45deg]" />}
-            {trend}
-          </p>
-        )}
-      </div>
-    </article>
-  );
-}
-
-const salesData = Array.from({ length: 30 }, (_, index) => {
-  const base = 12500 + Math.sin(index / 3) * 1800 + Math.cos(index / 2.2) * 950;
-  const adjustment = (index % 4) * 600;
-
-  return {
-    day: `Day ${index + 1}`,
-    revenue: Math.max(8200, Math.round(base + adjustment + index * 140)),
-  };
-});
-
-type SalesTooltipProps = {
-  active?: boolean;
-  payload?: Array<{ value?: number }>;
-  label?: string;
-};
-
-function SalesTooltip({ active, payload, label }: SalesTooltipProps) {
-  if (!active || !payload?.length) return null;
-
-  const value = payload[0]?.value ?? 0;
-
-  return (
-    <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-md">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-neutral-900">৳ {value.toLocaleString("en-US")}</p>
-    </div>
-  );
-}
-
-export function SalesChart() {
-  return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="font-heading text-xl font-bold text-neutral-900">Sales Overview</h3>
-
-        <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-100 p-1 text-sm font-medium text-neutral-500">
-          <button className="rounded-md bg-white px-3 py-2 text-neutral-900 shadow-sm" type="button">
-            Last 30 Days
-          </button>
-          <button className="rounded-md px-3 py-2 transition-colors duration-200 hover:text-neutral-900" type="button">
-            Last 7 Days
-          </button>
-        </div>
-      </div>
-
-      <div className="h-[320px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={salesData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#16875D" stopOpacity={0.28} />
-                <stop offset="95%" stopColor="#16875D" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="#E5E7EB" strokeDasharray="4 4" vertical={false} />
-            <XAxis dataKey="day" hide />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: "#6B7280", fontSize: 12 }} width={44} />
-            <Tooltip content={<SalesTooltip />} />
-            <Area
-              dataKey="revenue"
-              stroke="#16875D"
-              strokeWidth={3}
-              fill="url(#salesFill)"
-              fillOpacity={1}
-              type="monotone"
-            />
-            <Line dataKey="revenue" stroke="#16875D" strokeWidth={3} dot={false} type="monotone" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
-  );
-}
-
-const statusClassMap: Record<string, string> = {
-  PENDING: "bg-gold-accent/15 text-gold-accent",
-  PAID: "bg-blue-100 text-blue-600",
-  PROCESSING: "bg-purple-100 text-purple-600",
-  SHIPPED: "bg-indigo-100 text-indigo-600",
-  DELIVERED: "bg-brand-green-100 text-brand-green-600",
-  CANCELLED: "bg-red-100 text-red-600",
-};
-
-export function RecentOrdersTable() {
-  const { data: orders = [], isLoading } = useAdminOrders();
-  const recent = orders.slice(0, 5);
-
-  return (
-    <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-6 py-5">
-        <h3 className="font-heading text-xl font-bold text-neutral-900">Recent Orders</h3>
-
-        <Link className="text-sm font-semibold text-brand-green-600 transition-colors duration-200 hover:text-brand-green-900" href="/admin/orders">
-          View All
-        </Link>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-neutral-200">
-          <thead className="bg-neutral-50 text-left text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
-            <tr>
-              <th className="px-6 py-4">Order #</th>
-              <th className="px-6 py-4">Customer</th>
-              <th className="px-6 py-4">Date</th>
-              <th className="px-6 py-4">Amount</th>
-              <th className="px-6 py-4">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 bg-white">
-            {isLoading ? (
-              <tr>
-                <td className="px-6 py-8 text-sm text-neutral-500" colSpan={5}>
-                  Loading orders…
-                </td>
-              </tr>
-            ) : recent.length === 0 ? (
-              <tr>
-                <td className="px-6 py-8 text-sm text-neutral-500" colSpan={5}>
-                  No orders yet.
-                </td>
-              </tr>
-            ) : (
-              recent.map((order) => (
-                <tr key={order.id} className="transition-colors duration-200 hover:bg-neutral-100">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
-                    <Link
-                      className="hover:text-brand-green-700 hover:underline"
-                      href={`/admin/orders/${order.id}`}
-                    >
-                      {order.orderNumber}
-                    </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-700">
-                    {order.customerName}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-500">
-                    {new Date(order.createdAt).toLocaleDateString("en-CA")}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-neutral-900">
-                    {formatPrice(order.total)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]",
-                        statusClassMap[order.status] ?? "bg-neutral-100 text-neutral-600"
-                      )}
-                    >
-                      {order.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
   );
 }
