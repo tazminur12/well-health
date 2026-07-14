@@ -52,8 +52,19 @@ export function BlogPostCard({
             unoptimized
           />
         ) : (
-          <div className="flex h-full min-h-[200px] items-center justify-center font-heading text-sm font-semibold tracking-[0.22em] text-brand-green-700">
-            WELL HEALTH
+          <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 bg-gradient-to-br from-brand-green-50 to-white">
+            <span className="relative h-14 w-14 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-brand-green-100">
+              <Image
+                alt="Well Health"
+                className="object-contain p-2"
+                fill
+                sizes="56px"
+                src="/logo/logo-mark.png"
+              />
+            </span>
+            <span className="font-heading text-sm font-semibold tracking-[0.18em] text-brand-green-800">
+              WELL HEALTH
+            </span>
           </div>
         )}
         {featured ? (

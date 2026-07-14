@@ -133,7 +133,7 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 2. Admin-gated product server actions (CRUD, bulk delete/archive, featured/status)
 3. Zod validation + DTO mapper; seed script (`npm run db:seed`)
 4. Admin UI wired via TanStack Query to live DB
-5. Local product image uploads (`public/uploads/products`) + Server Actions body limit 32mb
+5. Product / blog / avatar / CMS images upload to Cloudinary; DB stores CDN URLs (Server Actions body limit 32mb)
 6. Public storefront wired to Active products — Shop, PDP, Featured, Shop preview, Cart (Zustand)
 
 **Completed (Backend — Customers):**
@@ -153,7 +153,7 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 
 **Completed (Backend — Blog):**
 1. Prisma `BlogPost` model (status Draft/Published/Scheduled/Archived, categories, SEO, featured image, views, author)
-2. Admin CRUD actions + featured image upload (`public/uploads/blog`) + React Query hooks
+2. Admin CRUD actions + Cloudinary featured image upload + React Query hooks
 3. Premium admin UI: live stats, filters, bulk delete, featured toggle, markdown editor toolbar, SEO search preview
 4. Public storefront `/blog` + `/blog/[slug]` (category filters, reading time, admin draft preview via `?preview=1`)
 5. Navbar + footer Blog links
@@ -244,7 +244,7 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 **Next up:**
 - Chat Widget — live realtime (backend)
 - Payment gateways (SSLCommerz / bKash callbacks)
-- Remaining backend (Cloudinary CDN, Realtime chat)
+- Remaining backend (Realtime chat)
 - Bilingual (EN/BN) toggle, SEO, deployment
 
 ---

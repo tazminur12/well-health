@@ -1,9 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "crypto";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import path from "path";
 
 import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
 import {
@@ -12,6 +9,7 @@ import {
   type AdminPasswordChangeInput,
   type AdminProfileUpdateInput,
 } from "@/lib/admin/profile-schemas";
+import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -195,21 +193,6 @@ export async function changeAdminPasswordAction(
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
 
-function extensionForMime(mime: string) {
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return "jpg";
-}
-
-async function removeLocalAvatar(publicUrl: string | null | undefined) {
-  if (!publicUrl?.startsWith("/uploads/avatars/")) return;
-  try {
-    await unlink(path.join(process.cwd(), "public", publicUrl));
-  } catch {
-    // ignore
-  }
-}
-
 export async function uploadAdminAvatarAction(
   formData: FormData
 ): Promise<AdminProfileResult<AdminProfile>> {
@@ -219,26 +202,19 @@ export async function uploadAdminAvatarAction(
     if (!(file instanceof File) || file.size === 0) {
       return { error: "Please choose an image file." };
     }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return { error: "Only JPG, PNG, or WEBP images are allowed." };
-    }
-    if (file.size > MAX_AVATAR_SIZE) {
-      return { error: "Avatar must be 2MB or smaller." };
-    }
 
     const existing = await prisma.user.findUnique({
       where: { id: admin.id },
       select: { avatarUrl: true },
     });
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "avatars", admin.id);
-    await mkdir(uploadDir, { recursive: true });
+    const uploaded = await uploadImageToCloudinary(file, {
+      folder: `avatars/${admin.id}`,
+      maxBytes: MAX_AVATAR_SIZE,
+      allowedTypes: ALLOWED_TYPES,
+    });
 
-    const filename = `${randomUUID()}.${extensionForMime(file.type)}`;
-    await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
-    const publicUrl = `/uploads/avatars/${admin.id}/${filename}`;
-
-    await removeLocalAvatar(existing?.avatarUrl);
+    await deleteCloudinaryImage(existing?.avatarUrl);
 
     await prisma.user.upsert({
       where: { id: admin.id },
@@ -248,14 +224,14 @@ export async function uploadAdminAvatarAction(
         name: admin.name,
         phone: admin.phone,
         role: "ADMIN",
-        avatarUrl: publicUrl,
+        avatarUrl: uploaded.url,
       },
-      update: { avatarUrl: publicUrl },
+      update: { avatarUrl: uploaded.url },
     });
 
     const supabase = await createClient();
     await supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
+      data: { avatar_url: uploaded.url },
     });
 
     const profile = await loadAdminProfile(admin.id);
@@ -274,7 +250,7 @@ export async function removeAdminAvatarAction(): Promise<AdminProfileResult<Admi
       where: { id: admin.id },
       select: { avatarUrl: true },
     });
-    await removeLocalAvatar(existing?.avatarUrl);
+    await deleteCloudinaryImage(existing?.avatarUrl);
 
     await prisma.user.update({
       where: { id: admin.id },

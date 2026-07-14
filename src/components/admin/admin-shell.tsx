@@ -28,13 +28,13 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleUserRound,
-  Leaf,
   UserRound,
   Wallet,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AdminNotificationBell } from "@/components/admin/admin-notification-bell";
 import { useAdminMessagesUnreadCount } from "@/hooks/use-admin-messages";
@@ -309,25 +309,25 @@ function AdminSidebar({
           aria-hidden
           className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-gold-accent/15 blur-2xl"
         />
-        <div className="relative flex items-center justify-between gap-3">
-          <Link
-            className="flex min-w-0 items-center gap-3"
-            href="/admin/dashboard"
-            onClick={onNavigate}
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-white/20 to-white/5 text-white ring-1 ring-white/15 shadow-sm">
-              <Leaf className="h-5 w-5" />
-            </span>
-
-            {!collapsed ? (
-              <span className="min-w-0">
-                <span className="block font-heading text-sm font-bold tracking-[0.18em] text-white">
-                  WELL HEALTH
-                </span>
-                <span className="block text-[11px] text-white/55">Admin Panel</span>
-              </span>
-            ) : null}
-          </Link>
+          <div className="relative flex items-center justify-between gap-3">
+            {collapsed ? (
+              <BrandLogo
+                href="/admin/dashboard"
+                onClick={onNavigate}
+                size="sm"
+                tone="dark"
+                variant="mark"
+              />
+            ) : (
+              <BrandLogo
+                href="/admin/dashboard"
+                onClick={onNavigate}
+                size="sm"
+                subtitle="Admin Panel"
+                tone="dark"
+                variant="lockup"
+              />
+            )}
 
           <div className="hidden lg:block">
             <button

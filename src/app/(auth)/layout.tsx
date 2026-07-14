@@ -1,6 +1,8 @@
-import { CheckCircle2, Leaf, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+import { BrandLogo } from "@/components/brand-logo";
 
 const trustPoints = [
   "Lab-tested formulations",
@@ -25,17 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         />
 
         <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
-          <Link className="inline-flex items-center gap-3 text-white" href="/">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-              <Leaf className="h-5 w-5" />
-            </span>
-            <span>
-              <span className="block font-heading text-sm font-bold tracking-[0.18em]">
-                WELL HEALTH
-              </span>
-              <span className="block text-xs text-white/70">Trade International</span>
-            </span>
-          </Link>
+          <BrandLogo size="lg" tone="dark" variant="full" />
 
           <div className="max-w-md space-y-8">
             <div className="space-y-4">
@@ -96,14 +88,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative w-full max-w-[420px] space-y-6">
           <div className="flex items-center justify-between gap-3">
-            <Link className="inline-flex items-center gap-2.5 lg:invisible" href="/">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green-100 text-brand-green-600">
-                <Leaf className="h-5 w-5" />
-              </span>
-              <span className="font-heading text-sm font-bold tracking-[0.14em] text-brand-green-900">
-                WELL HEALTH
-              </span>
-            </Link>
+            <BrandLogo className="lg:invisible" size="sm" variant="lockup" />
 
             <Link
               className="inline-flex min-h-10 items-center rounded-xl border border-neutral-200 bg-white px-3.5 text-sm font-medium text-neutral-600 shadow-sm transition-colors duration-200 active:bg-neutral-100 hover:bg-neutral-50 hover:text-neutral-900"

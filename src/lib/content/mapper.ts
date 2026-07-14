@@ -76,10 +76,10 @@ export const defaultAboutHome: AboutHomeContent = {
 };
 
 export const defaultSiteAssets: SiteAssetsContent = {
-  logoLightUrl: "",
-  logoDarkUrl: "",
-  faviconUrl: "",
-  ogImageUrl: "",
+  logoLightUrl: "/logo/logo-full.png",
+  logoDarkUrl: "/logo/logo-mark.png",
+  faviconUrl: "/logo/favicon-32.png",
+  ogImageUrl: "/logo/logo-mark-512.png",
 };
 
 export function mapHeroSlide(slide: HeroSlide): AdminHeroSlide {

@@ -1,13 +1,11 @@
 "use server";
 
-import { randomUUID } from "crypto";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import path from "path";
+import { revalidatePath } from "next/cache";
 
 import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
 import { mapBlogPostToAdmin, type AdminBlogPost } from "@/lib/blog/mapper";
+import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 
 export type BlogUploadResult = {
   error?: string;
@@ -17,22 +15,6 @@ export type BlogUploadResult = {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]);
-
-function extensionForMime(mime: string) {
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  if (mime === "image/gif") return "gif";
-  return "jpg";
-}
-
-async function removeLocalUpload(publicUrl: string | null | undefined) {
-  if (!publicUrl?.startsWith("/uploads/blog/")) return;
-  try {
-    await unlink(path.join(process.cwd(), "public", publicUrl));
-  } catch {
-    // File may already be gone
-  }
-}
 
 export async function saveBlogFeaturedImageAction(
   postId: string,
@@ -49,27 +31,17 @@ export async function saveBlogFeaturedImageAction(
       return { error: "Please choose an image file." };
     }
 
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return { error: "Only JPG, PNG, WEBP, or GIF images are allowed." };
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return { error: "Image must be 5MB or smaller." };
-    }
+    const uploaded = await uploadImageToCloudinary(file, {
+      folder: `blog/${postId}`,
+      maxBytes: MAX_FILE_SIZE,
+      allowedTypes: ALLOWED_TYPES,
+    });
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "blog", postId);
-    await mkdir(uploadDir, { recursive: true });
-
-    const ext = extensionForMime(file.type);
-    const filename = `${randomUUID()}.${ext}`;
-    const absolutePath = path.join(uploadDir, filename);
-    await writeFile(absolutePath, Buffer.from(await file.arrayBuffer()));
-
-    const publicUrl = `/uploads/blog/${postId}/${filename}`;
-    await removeLocalUpload(post.featuredImageUrl);
+    await deleteCloudinaryImage(post.featuredImageUrl);
 
     const updated = await prisma.blogPost.update({
       where: { id: postId },
-      data: { featuredImageUrl: publicUrl },
+      data: { featuredImageUrl: uploaded.url },
     });
 
     revalidatePath("/admin/blog");
@@ -77,7 +49,7 @@ export async function saveBlogFeaturedImageAction(
     revalidatePath("/blog");
     revalidatePath(`/blog/${updated.slug}`);
 
-    return { url: publicUrl, data: mapBlogPostToAdmin(updated) };
+    return { url: uploaded.url, data: mapBlogPostToAdmin(updated) };
   } catch (error) {
     if (
       error instanceof AdminAuthError ||
@@ -86,7 +58,10 @@ export async function saveBlogFeaturedImageAction(
       return { error: error instanceof Error ? error.message : "Unauthorized" };
     }
     console.error("Blog image upload failed:", error);
-    return { error: "Failed to upload image. Please try again." };
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to upload image. Please try again.",
+    };
   }
 }
 
@@ -99,7 +74,7 @@ export async function deleteBlogFeaturedImageAction(
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
     if (!post) return { error: "Post not found." };
 
-    await removeLocalUpload(post.featuredImageUrl);
+    await deleteCloudinaryImage(post.featuredImageUrl);
 
     const updated = await prisma.blogPost.update({
       where: { id: postId },

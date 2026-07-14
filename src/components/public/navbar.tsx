@@ -9,7 +9,6 @@ import {
   Home,
   Info,
   LayoutDashboard,
-  Leaf,
   LogIn,
   LogOut,
   Mail,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import {
   NavLoginButton,
   NavUserMenu,
@@ -102,25 +102,10 @@ export function Navbar({ user = null }: NavbarProps) {
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            className="flex items-center gap-3 transition-opacity duration-200 active:opacity-70"
-            href="/"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-green-100 text-brand-green-900 shadow-sm sm:h-12 sm:w-12">
-              <Leaf className="h-6 w-6" />
-            </span>
-            <span className="hidden flex-col leading-tight sm:flex">
-              <span className="font-heading text-lg font-semibold tracking-[0.18em] text-brand-green-900">
-                WELL HEALTH
-              </span>
-              <span className="text-sm font-medium text-brand-green-600">
-                TRADE INTERNATIONAL
-              </span>
-              <span className="text-xs italic text-neutral-500">
-                Better Health, Better Life
-              </span>
-            </span>
-          </Link>
+          <div className="min-w-0 shrink">
+            <BrandLogo className="hidden sm:inline-flex" priority size="md" variant="full" />
+            <BrandLogo className="sm:hidden" priority size="md" variant="mark" />
+          </div>
 
           <nav className="hidden items-center gap-8 xl:flex">
             {navLinks.map((link) => {
@@ -240,23 +225,13 @@ export function Navbar({ user = null }: NavbarProps) {
           )}
         >
           <div className="flex items-center justify-between gap-3 border-b border-brand-green-100/80 bg-white px-5 py-4">
-            <Link
-              className="flex min-w-0 items-center gap-3 active:opacity-70"
-              href="/"
+            <BrandLogo
+              className="min-w-0"
               onClick={closeMenu}
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-green-900 text-white shadow-sm">
-                <Leaf className="h-5 w-5" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate font-heading text-base font-bold text-brand-green-900">
-                  Well Health
-                </span>
-                <span className="block truncate text-xs text-neutral-500">
-                  Better Health, Better Life
-                </span>
-              </span>
-            </Link>
+              size="sm"
+              subtitle="Better Health, Better Life"
+              variant="lockup"
+            />
 
             <button
               aria-label="Close menu"

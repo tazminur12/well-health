@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import {
   formatStoreAddress,
   phoneTelHref,
@@ -159,19 +160,7 @@ export function Footer({ settings }: FooterProps) {
         {/* Main columns */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="space-y-5 lg:col-span-4">
-            <Link className="inline-flex items-center gap-3" href="/">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
-                <Leaf className="h-6 w-6" />
-              </span>
-              <span className="leading-tight">
-                <span className="block font-heading text-lg font-semibold tracking-[0.16em]">
-                  WELL HEALTH
-                </span>
-                <span className="block text-xs font-medium tracking-wide text-white/60">
-                  TRADE INTERNATIONAL
-                </span>
-              </span>
-            </Link>
+            <BrandLogo size="lg" tone="dark" variant="full" />
 
             <p className="max-w-sm text-sm leading-7 text-white/65">
               {settings.tagline

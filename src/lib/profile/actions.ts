@@ -2,11 +2,9 @@
 
 import { Gender, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "crypto";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import path from "path";
 
 import { getSessionUser } from "@/lib/auth/session";
+import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import {
   customerAddressSchema,
@@ -464,21 +462,6 @@ export async function setDefaultCustomerAddressAction(
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
 
-function extensionForMime(mime: string) {
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return "jpg";
-}
-
-async function removeLocalAvatar(publicUrl: string | null | undefined) {
-  if (!publicUrl?.startsWith("/uploads/avatars/")) return;
-  try {
-    await unlink(path.join(process.cwd(), "public", publicUrl));
-  } catch {
-    // ignore missing files
-  }
-}
-
 export async function uploadCustomerAvatarAction(
   formData: FormData
 ): Promise<ProfileResult<CustomerProfile>> {
@@ -488,12 +471,6 @@ export async function uploadCustomerAvatarAction(
     if (!(file instanceof File) || file.size === 0) {
       return { error: "Please choose an image file." };
     }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return { error: "Only JPG, PNG, or WEBP images are allowed." };
-    }
-    if (file.size > MAX_AVATAR_SIZE) {
-      return { error: "Avatar must be 2MB or smaller." };
-    }
 
     await ensureUserRow(session);
     const existing = await prisma.user.findUnique({
@@ -501,23 +478,22 @@ export async function uploadCustomerAvatarAction(
       select: { avatarUrl: true },
     });
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "avatars", session.id);
-    await mkdir(uploadDir, { recursive: true });
+    const uploaded = await uploadImageToCloudinary(file, {
+      folder: `avatars/${session.id}`,
+      maxBytes: MAX_AVATAR_SIZE,
+      allowedTypes: ALLOWED_TYPES,
+    });
 
-    const filename = `${randomUUID()}.${extensionForMime(file.type)}`;
-    await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
-    const publicUrl = `/uploads/avatars/${session.id}/${filename}`;
-
-    await removeLocalAvatar(existing?.avatarUrl);
+    await deleteCloudinaryImage(existing?.avatarUrl);
 
     await prisma.user.update({
       where: { id: session.id },
-      data: { avatarUrl: publicUrl },
+      data: { avatarUrl: uploaded.url },
     });
 
     const supabase = await createClient();
     await supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
+      data: { avatar_url: uploaded.url },
     });
 
     const profile = await loadProfile(session.id);
@@ -542,7 +518,7 @@ export async function deleteCustomerAccountAction(
       where: { id: session.id },
       select: { avatarUrl: true },
     });
-    await removeLocalAvatar(existing?.avatarUrl);
+    await deleteCloudinaryImage(existing?.avatarUrl);
 
     await prisma.user.delete({ where: { id: session.id } }).catch(() => null);
 

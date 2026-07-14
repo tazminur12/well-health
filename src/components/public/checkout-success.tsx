@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { getOrderByNumberAction } from "@/lib/checkout/actions";
 import { formatPrice } from "@/lib/format-price";
 
@@ -44,6 +45,9 @@ function SuccessContent() {
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-brand-green-100 bg-gradient-to-br from-brand-green-50 to-white px-6 py-10 text-center sm:px-10">
+          <div className="mx-auto mb-4 flex justify-center">
+            <BrandLogo href={null} size="md" variant="mark" />
+          </div>
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-green-600 text-white shadow-md">
             <CheckCircle2 className="h-8 w-8" />
           </span>

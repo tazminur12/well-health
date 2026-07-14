@@ -1,10 +1,7 @@
 "use server";
 
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-
 import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 
 export type UploadImagesResult = {
@@ -12,17 +9,10 @@ export type UploadImagesResult = {
   urls?: string[];
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]);
 
-function extensionForMime(mime: string) {
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  if (mime === "image/gif") return "gif";
-  return "jpg";
-}
-
-/** Save product images to /public/uploads/products and ProductImage rows. */
+/** Upload product images to Cloudinary and create ProductImage rows. */
 export async function saveProductImagesAction(
   productId: string,
   formData: FormData
@@ -49,40 +39,29 @@ export async function saveProductImagesAction(
       return { error: "Maximum 6 images allowed per product." };
     }
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "products", productId);
-    await mkdir(uploadDir, { recursive: true });
-
     const urls: string[] = [];
     let sortOrder = existingCount;
 
     for (const file of files) {
-      if (!ALLOWED_TYPES.has(file.type)) {
-        return { error: "Only JPG, PNG, WEBP, or GIF images are allowed." };
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        return { error: "Each image must be 5MB or smaller." };
-      }
+      const uploaded = await uploadImageToCloudinary(file, {
+        folder: `products/${productId}`,
+        maxBytes: MAX_FILE_SIZE,
+        allowedTypes: ALLOWED_TYPES,
+      });
 
-      const ext = extensionForMime(file.type);
-      const filename = `${randomUUID()}.${ext}`;
-      const absolutePath = path.join(uploadDir, filename);
-      const buffer = Buffer.from(await file.arrayBuffer());
-      await writeFile(absolutePath, buffer);
-
-      const publicUrl = `/uploads/products/${productId}/${filename}`;
       const isPrimary = existingCount === 0 && sortOrder === 0;
 
       await prisma.productImage.create({
         data: {
           productId,
-          url: publicUrl,
+          url: uploaded.url,
           alt: product.name,
           sortOrder,
           isPrimary,
         },
       });
 
-      urls.push(publicUrl);
+      urls.push(uploaded.url);
       sortOrder += 1;
     }
 
@@ -102,7 +81,10 @@ export async function saveProductImagesAction(
       return { error: error instanceof Error ? error.message : "Unauthorized" };
     }
     console.error("Image upload failed:", error);
-    return { error: "Failed to upload images. Please try again." };
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to upload images. Please try again.",
+    };
   }
 }
 
@@ -119,6 +101,7 @@ export async function deleteProductImageAction(
     if (!image) return { error: "Image not found." };
 
     await prisma.productImage.delete({ where: { id: imageId } });
+    await deleteCloudinaryImage(image.url);
 
     const remaining = await prisma.productImage.count({ where: { productId } });
     await prisma.product.update({

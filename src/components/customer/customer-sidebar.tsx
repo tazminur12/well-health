@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Leaf } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { CustomerShellUser } from "@/components/customer/customer-header";
 import {
@@ -39,18 +39,14 @@ export function CustomerSidebar({ pathname, user }: CustomerSidebarProps) {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-neutral-200 bg-white md:flex">
-      <div className="flex h-[4.25rem] items-center gap-3 border-b border-neutral-200 px-5">
-        <Link className="flex min-w-0 items-center gap-3" href="/dashboard">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-green-100 text-brand-green-600">
-            <Leaf className="h-5 w-5" />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-heading text-sm font-bold tracking-[0.16em] text-brand-green-900">
-              WELL HEALTH
-            </span>
-            <span className="block text-xs text-neutral-500">My Account</span>
-          </span>
-        </Link>
+      <div className="flex h-[4.25rem] items-center gap-3 border-b border-neutral-200 px-4">
+        <BrandLogo
+          className="min-w-0"
+          href="/dashboard"
+          size="sm"
+          subtitle="My Account"
+          variant="lockup"
+        />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
