@@ -13,6 +13,7 @@ import type {
   CustomerOrderStats,
 } from "@/components/customer/orders-data";
 import { getSessionUser } from "@/lib/auth/session";
+import { queueOrderEmails, sendOrderStatusEmail } from "@/lib/email/orders";
 import { prisma } from "@/lib/prisma";
 
 export type CustomerOrderResult<T = undefined> = {
@@ -249,6 +250,8 @@ export async function cancelMyOrderAction(
         include: orderInclude,
       });
     });
+
+    queueOrderEmails([() => sendOrderStatusEmail(updated, OrderStatus.CANCELLED)]);
 
     revalidatePath("/orders");
     revalidatePath(`/orders/${orderNumber}`);

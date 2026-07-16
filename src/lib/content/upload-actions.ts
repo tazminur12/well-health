@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 export type ContentUploadResult = {
@@ -18,7 +18,7 @@ export async function uploadContentImageAction(
   formData: FormData
 ): Promise<ContentUploadResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
 
     const safeFolder = folder.replace(/[^a-z0-9-_]/gi, "") || "misc";
     const file = formData.get("file");

@@ -3,9 +3,10 @@
 import { InviteStatus, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { getAppUrl, sendStaffInviteEmail } from "@/lib/email/resend";
 import { prisma } from "@/lib/prisma";
+import { rateLimitForRequest } from "@/lib/rate-limit/server";
 import {
   createInviteToken,
   hashInviteToken,
@@ -144,7 +145,7 @@ async function ensureDefaultRoles() {
 
 export async function listStaffRolesAction(): Promise<ActionResult<AdminStaffRole[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     await ensureDefaultRoles();
 
     const [roles, adminCount, supportCount, customerCount] = await Promise.all([
@@ -201,7 +202,7 @@ export async function createStaffRoleAction(
   input: CreateStaffRoleInput
 ): Promise<ActionResult<AdminStaffRole>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const parsed = createStaffRoleSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid role details." };
@@ -246,7 +247,7 @@ export async function updateStaffRoleAction(
   input: UpdateStaffRoleInput
 ): Promise<ActionResult<AdminStaffRole>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const parsed = updateStaffRoleSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid role details." };
@@ -301,7 +302,7 @@ export async function updateStaffRoleAction(
 
 export async function deleteStaffRoleAction(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const existing = await prisma.staffRole.findUnique({
       where: { id },
       include: { _count: { select: { users: true } } },
@@ -328,7 +329,7 @@ export async function getStaffRoleAction(
   id: string
 ): Promise<ActionResult<AdminStaffRole>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     await ensureDefaultRoles();
 
     const role = await prisma.staffRole.findUnique({
@@ -365,7 +366,7 @@ export async function updateStaffRolePermissionsAction(
   input: UpdateStaffRolePermissionsInput
 ): Promise<ActionResult<AdminStaffRole>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const parsed = updateStaffRolePermissionsSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid permissions." };
@@ -421,7 +422,7 @@ export async function updateStaffRolePermissionsAction(
 
 export async function listStaffMembersAction(): Promise<ActionResult<AdminStaffMember[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const users = await prisma.user.findMany({
       where: { role: { in: [Role.ADMIN, Role.SUPPORT] } },
       include: { staffRole: true },
@@ -440,7 +441,7 @@ export async function createStaffAccountAction(
   input: CreateStaffAccountInput
 ): Promise<ActionResult<AdminStaffMember>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const parsed = createStaffAccountSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid account details." };
@@ -513,7 +514,7 @@ export async function createStaffAccountAction(
 
 export async function listStaffInvitesAction(): Promise<ActionResult<AdminStaffInvite[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const invites = await prisma.staffInvite.findMany({
       include: {
         role: true,
@@ -535,7 +536,7 @@ export async function inviteStaffAction(
   input: InviteStaffInput
 ): Promise<ActionResult<AdminStaffInvite>> {
   try {
-    const adminUser = await requireAdmin();
+    const adminUser = await requireAdminPermission("roles");
     const parsed = inviteStaffSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid invite details." };
@@ -606,7 +607,7 @@ export async function inviteStaffAction(
 
 export async function revokeStaffInviteAction(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("roles");
     const invite = await prisma.staffInvite.findUnique({ where: { id } });
     if (!invite) return { error: "Invite not found." };
     if (invite.status !== InviteStatus.PENDING) {
@@ -635,6 +636,10 @@ export async function getInviteByTokenAction(token: string): Promise<
 > {
   try {
     if (!token || token.length < 20) return { error: "Invalid invite link." };
+
+    const rateLimited = await rateLimitForRequest("auth:invite-token");
+    if (rateLimited) return rateLimited;
+
     const invite = await prisma.staffInvite.findUnique({
       where: { tokenHash: hashInviteToken(token) },
       include: { role: true },
@@ -672,6 +677,9 @@ export async function acceptStaffInviteAction(
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid form details." };
     }
+
+    const rateLimited = await rateLimitForRequest("auth:invite-accept");
+    if (rateLimited) return rateLimited;
 
     const invite = await prisma.staffInvite.findUnique({
       where: { tokenHash: hashInviteToken(parsed.data.token) },

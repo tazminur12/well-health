@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   BookOpen,
+  Handshake,
   Info,
   Leaf,
   Mail,
@@ -12,7 +13,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-export type PageHeroTone = "shop" | "blog" | "about" | "contact";
+export type PageHeroTone = "shop" | "blog" | "about" | "contact" | "distributor";
 
 const toneStyles: Record<
   PageHeroTone,
@@ -71,6 +72,17 @@ const toneStyles: Record<
     iconWrap: "bg-white/15 text-white ring-white/25",
     crumbActive: "text-cyan-100",
     Icon: Mail,
+  },
+  distributor: {
+    shell: "from-[#0B4D3A] via-[#0F5C45] to-[#8B6914]",
+    orbA: "bg-[#C9A24B]/35",
+    orbB: "bg-emerald-300/20",
+    orbC: "bg-amber-200/15",
+    badge: "bg-white/15 text-[#F5E6C0] ring-white/20",
+    accentBar: "from-[#C9A24B] via-amber-100 to-white",
+    iconWrap: "bg-white/15 text-white ring-white/25",
+    crumbActive: "text-[#F5E6C0]",
+    Icon: Handshake,
   },
 };
 

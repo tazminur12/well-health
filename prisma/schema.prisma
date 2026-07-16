@@ -460,6 +460,52 @@ enum ContactMessageStatus {
   ARCHIVED
 }
 
+enum DistributorApplicationStatus {
+  NEW
+  REVIEWING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum DistributorBusinessType {
+  PHARMACY
+  RETAIL
+  WHOLESALE
+  ONLINE
+  OTHER
+}
+
+enum DistributorExperience {
+  NEW
+  YEARS_1_3
+  YEARS_3_5
+  YEARS_5_PLUS
+}
+
+model DistributorApplication {
+  id           String                       @id @default(cuid())
+  fullName     String                       @map("full_name")
+  phone        String
+  email        String
+  division     String
+  district     String
+  businessName String?                      @map("business_name")
+  businessType DistributorBusinessType      @map("business_type")
+  experience   DistributorExperience
+  coverageArea String                       @map("coverage_area")
+  message      String                       @db.Text
+  status       DistributorApplicationStatus @default(NEW)
+  adminNotes   String?                      @map("admin_notes") @db.Text
+  reviewedAt   DateTime?                    @map("reviewed_at")
+  createdAt    DateTime                     @default(now()) @map("created_at")
+  updatedAt    DateTime                     @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([district])
+  @@map("distributor_applications")
+}
+
 model ContactMessage {
   id         String               @id @default(cuid())
   name       String

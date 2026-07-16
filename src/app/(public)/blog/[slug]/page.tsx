@@ -7,7 +7,8 @@ import { ChevronRight, Clock, Eye } from "lucide-react";
 import { BlogPostCard } from "@/components/public/blog-post-card";
 import { CTABanner } from "@/components/public/cta-banner";
 import { NewsletterStrip } from "@/components/public/newsletter-strip";
-import { requireAdmin } from "@/lib/admin/require-admin";
+import { JsonLd } from "@/components/seo/json-ld";
+import { requireAdminPermission } from "@/lib/admin/require-admin";
 import type { AdminBlogPost } from "@/lib/blog/mapper";
 import { renderBlogMarkdown } from "@/lib/blog/markdown";
 import {
@@ -19,6 +20,9 @@ import {
   incrementBlogPostViews,
   type PublicBlogPost,
 } from "@/lib/blog/public-queries";
+import { getSeoAssets } from "@/lib/seo/page-assets";
+import { buildBlogPostStructuredData } from "@/lib/seo/structured-data";
+import { buildPageMetadata } from "@/lib/seo/site";
 
 type BlogPostPageProps = {
   params: Promise<{ slug: string }>;
@@ -43,7 +47,7 @@ function getInitials(name: string) {
 async function resolvePost(slug: string, preview: boolean) {
   if (preview) {
     try {
-      await requireAdmin();
+      await requireAdminPermission("blog");
       const draft = await getBlogPostBySlugForPreview(slug);
       if (draft) return { post: toPublicShape(draft), isPreview: true };
     } catch {
@@ -70,18 +74,18 @@ export async function generateMetadata({
   const { slug } = await params;
   const query = await searchParams;
   const resolved = await resolvePost(slug, query.preview === "1");
-  if (!resolved) return { title: "Article not found | Well Health" };
+  if (!resolved) return { title: { absolute: "Article not found | Well Health" } };
   const { post } = resolved;
-  return {
-    title: post.metaTitle || `${post.title} | Well Health Blog`,
+  const { ogImage } = await getSeoAssets();
+
+  return buildPageMetadata({
+    title: post.metaTitle || post.title,
     description: post.metaDescription || post.excerpt,
-    openGraph: {
-      title: post.metaTitle || post.title,
-      description: post.metaDescription || post.excerpt,
-      type: "article",
-      images: post.featuredImageUrl ? [post.featuredImageUrl] : undefined,
-    },
-  };
+    path: `/blog/${post.slug}`,
+    keywords: [post.title, post.category, ...post.tags, "Well Health blog"],
+    ogImage: post.featuredImageUrl || ogImage,
+    ogType: "article",
+  });
 }
 
 export default async function BlogPostPage({ params, searchParams }: BlogPostPageProps) {
@@ -98,9 +102,11 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
 
   const related = await getRelatedBlogPosts(post.id, post.category, 3);
   const html = renderBlogMarkdown(post.content);
+  const structuredData = buildBlogPostStructuredData(post);
 
   return (
     <div className="bg-white text-neutral-900">
+      <JsonLd data={structuredData} />
       {isPreview ? (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900">
           Preview mode — this post is not public yet.{" "}

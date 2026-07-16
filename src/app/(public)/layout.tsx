@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/public/footer";
 import { Navbar } from "@/components/public/navbar";
 import { TopBar } from "@/components/public/top-bar";
+import { WhatsAppChatButton } from "@/components/public/whatsapp-chat-button";
 import { WishlistProvider } from "@/components/public/wishlist-provider";
 import { getSessionUser } from "@/lib/auth/session";
 import { getPublicStoreSettings } from "@/lib/settings/public-queries";
@@ -34,6 +35,7 @@ export default async function PublicLayout({
         />
         <main className="flex-1">{children}</main>
         <Footer settings={settings} />
+        <WhatsAppChatButton whatsapp={settings.whatsapp} />
       </div>
     </WishlistProvider>
   );

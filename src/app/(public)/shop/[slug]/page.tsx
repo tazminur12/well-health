@@ -8,11 +8,15 @@ import { ImageGallery } from "@/components/public/image-gallery";
 import { ProductInfoPanel } from "@/components/public/product-info-panel";
 import { ProductTabs } from "@/components/public/product-tabs";
 import { RelatedProducts } from "@/components/public/related-products";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   getActiveProductSlugs,
   getProductBySlug,
   getRelatedProducts,
 } from "@/lib/products/public-queries";
+import { getSeoAssets } from "@/lib/seo/page-assets";
+import { buildProductPageStructuredData } from "@/lib/seo/structured-data";
+import { buildPageMetadata } from "@/lib/seo/site";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -29,14 +33,29 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const [product, { ogImage }] = await Promise.all([getProductBySlug(slug), getSeoAssets()]);
   if (!product) {
-    return { title: "Product not found | Well Health" };
+    return { title: { absolute: "Product not found | Well Health" } };
   }
-  return {
-    title: product.metaTitle || `${product.name} | Well Health`,
-    description: product.metaDescription || product.shortDescription,
-  };
+
+  const title = product.metaTitle || product.name;
+  const description =
+    product.metaDescription ||
+    `${product.shortDescription} Buy ${product.name} online from Well Health Trade International with delivery across Bangladesh.`;
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/shop/${product.slug}`,
+    keywords: [
+      product.name,
+      product.category,
+      product.brand,
+      "buy supplements Bangladesh",
+      "Well Health",
+    ],
+    ogImage: product.imageUrl || ogImage,
+  });
 }
 
 export default async function ProductDetailPage({ params }: ProductPageProps) {
@@ -45,6 +64,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   if (!product) notFound();
 
   const related = await getRelatedProducts(product.id, product.category, 4);
+  const structuredData = buildProductPageStructuredData(product);
 
   const specs = [
     { label: "Brand", value: product.brand },
@@ -65,6 +85,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
   return (
     <div className="bg-white text-neutral-900">
+      <JsonLd data={structuredData} />
       <section className="border-b border-neutral-100 bg-[#F7F8F9]/70 py-6 sm:py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <nav className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">

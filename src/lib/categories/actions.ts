@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   categoryInputSchema,
   type AdminCategory,
@@ -76,7 +76,7 @@ function revalidateCategories() {
 
 export async function listCategoriesAction(): Promise<CategoryActionResult<AdminCategory[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("categories");
     const rows = await prisma.category.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -91,7 +91,7 @@ export async function createCategoryAction(
   input: CategoryInput
 ): Promise<CategoryActionResult<AdminCategory>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("categories");
     const parsed = categoryInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid category" };
@@ -120,7 +120,7 @@ export async function updateCategoryAction(
   input: CategoryInput
 ): Promise<CategoryActionResult<AdminCategory>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("categories");
     const parsed = categoryInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid category" };
@@ -147,7 +147,7 @@ export async function updateCategoryAction(
 
 export async function deleteCategoryAction(id: string): Promise<CategoryActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("categories");
     const existing = await prisma.category.findUnique({
       where: { id },
       include: { _count: { select: { products: true } } },
@@ -171,7 +171,7 @@ export async function toggleCategoryActiveAction(
   id: string
 ): Promise<CategoryActionResult<AdminCategory>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("categories");
     const existing = await prisma.category.findUnique({ where: { id } });
     if (!existing) return { error: "Category not found." };
 
@@ -196,7 +196,7 @@ export async function reorderCategoryAction(
   direction: "up" | "down"
 ): Promise<CategoryActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("categories");
     const categories = await prisma.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });

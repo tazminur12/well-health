@@ -4,10 +4,12 @@ import {
   ArrowRight,
   Award,
   BadgeCheck,
+  BookOpen,
   Eye,
   FlaskConical,
   HeartHandshake,
   Leaf,
+  Quote,
   ShieldCheck,
   Sparkles,
   Target,
@@ -93,8 +95,58 @@ const pillars = [
   },
 ];
 
+const historyStats = [
+  { value: "2018", label: "Founded in Dhaka" },
+  { value: "25+", label: "Trusted formulations" },
+  { value: "64", label: "Districts served" },
+  { value: "5,000+", label: "Families supported" },
+];
+
+const companyTimeline = [
+  {
+    year: "2018",
+    title: "Company founded",
+    description:
+      "Well Health Trade International began in Dhaka with a clear purpose — to make safe, effective supplements accessible to Bangladeshi families.",
+  },
+  {
+    year: "2019",
+    title: "First product line",
+    description:
+      "We launched our inaugural wellness range, built on careful sourcing, transparent labeling, and formulations designed for everyday health needs.",
+  },
+  {
+    year: "2021",
+    title: "Nationwide delivery",
+    description:
+      "Expanded fulfilment and courier partnerships to reach customers across all divisions of Bangladesh with reliable, trackable delivery.",
+  },
+  {
+    year: "2023",
+    title: "Quality systems strengthened",
+    description:
+      "Formalised lab-testing workflows, supplier audits, and GMP-aligned manufacturing partnerships to raise our clinical premium standard.",
+  },
+  {
+    year: "2025",
+    title: "Distributor network",
+    description:
+      "Opened our authorized distributor programme to help pharmacies, retailers, and partners grow with structured onboarding and territory support.",
+  },
+  {
+    year: "2026",
+    title: "Clinical premium positioning",
+    description:
+      "Refined our brand identity, digital experience, and product portfolio to serve as Bangladesh's most trusted clinical premium supplement company.",
+  },
+];
+
 const team = [
-  { name: "Mst. Ayesha Rahman", role: "Founder & CEO", tone: "from-[#E8F5EE] to-[#CFE8DC]" },
+  {
+    name: "Mst. Ayesha Rahman",
+    role: "Managing Director & Founder",
+    tone: "from-[#E8F5EE] to-[#CFE8DC]",
+  },
   { name: "Md. Tanvir Hasan", role: "Head of Quality", tone: "from-[#F5F0E6] to-[#E8D9B8]" },
   { name: "Nusrat Jahan", role: "Operations", tone: "from-[#EAF3FF] to-[#D5E4F7]" },
   { name: "Rakib Ahmed", role: "Customer Relations", tone: "from-[#F3F0FF] to-[#E2DAFB]" },
@@ -213,6 +265,81 @@ export async function AboutPageContent() {
                   Clinical care
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Company history */}
+      <section
+        aria-labelledby="company-history-heading"
+        className="border-y border-brand-green-100/70 bg-[#F0F7F3]/60 py-16 sm:py-20 lg:py-24"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-start lg:gap-16">
+            <div className="space-y-6">
+              <p className="font-bangla text-sm font-semibold text-brand-green-700">
+                কোম্পানির ইতিহাস
+              </p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-green-600">
+                Our history
+              </p>
+              <h2
+                className="font-heading text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl"
+                id="company-history-heading"
+              >
+                Built step by step for Bangladesh&apos;s wellness needs
+              </h2>
+              <div className="h-1 w-20 rounded-full bg-gradient-to-r from-brand-green-600 to-[#C9A24B]" />
+              <div className="space-y-5 text-base leading-8 text-neutral-600">
+                <p>
+                  Well Health Trade International was established in Dhaka to address a gap in the
+                  market — families wanted supplements they could trust, with clear ingredients,
+                  honest claims, and dependable service. What started as a focused local initiative
+                  has grown into a nationally recognised wellness brand.
+                </p>
+                <p>
+                  From our early days, we invested in formulation quality, responsible sourcing,
+                  and customer education. Each product release was guided by the same question: would
+                  we confidently recommend this to our own families? That standard still defines how
+                  we work today.
+                </p>
+                <p>
+                  Over the years we expanded delivery coverage, strengthened quality assurance, and
+                  built partnerships with distributors who share our commitment to integrity. Our
+                  history is not about rapid hype — it is about steady growth rooted in credibility,
+                  care, and long-term relationships with the people we serve.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                {historyStats.map((stat) => (
+                  <article
+                    className="rounded-2xl bg-white p-5 shadow-[0_12px_32px_rgba(11,77,58,0.06)] ring-1 ring-brand-green-100/80 sm:p-6"
+                    key={stat.label}
+                  >
+                    <p className="font-heading text-3xl font-bold text-brand-green-700 sm:text-4xl">
+                      {stat.value}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-neutral-600">{stat.label}</p>
+                  </article>
+                ))}
+              </div>
+
+              <article className="rounded-[1.75rem] bg-gradient-to-br from-brand-green-900 to-[#0F5A42] p-7 text-white shadow-[0_20px_50px_rgba(11,77,58,0.18)] sm:p-8">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                  <BookOpen className="h-5 w-5 text-[#F5E6C0]" />
+                </span>
+                <h3 className="mt-5 font-heading text-xl font-bold tracking-tight">
+                  A brand shaped by responsibility
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-white/85">
+                  We measure progress by trust earned — through consistent quality, transparent
+                  communication, and supplements that support healthier routines across Bangladesh.
+                </p>
+              </article>
             </div>
           </div>
         </div>
@@ -408,6 +535,157 @@ export async function AboutPageContent() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Managing Director message */}
+      <section
+        aria-labelledby="md-message-heading"
+        className="relative overflow-hidden border-y border-brand-green-100/70 bg-white py-16 sm:py-20 lg:py-24"
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(201,162,75,0.08),_transparent_42%)]"
+        />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <p className="font-bangla text-sm font-semibold text-brand-green-700">
+              ব্যবস্থাপনা পরিচালকের বাণী
+            </p>
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.22em] text-brand-green-600">
+              Leadership message
+            </p>
+            <h2
+              className="mt-3 font-heading text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl"
+              id="md-message-heading"
+            >
+              From the Managing Director
+            </h2>
+          </div>
+
+          <article className="mx-auto max-w-5xl overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#F7F8F9] via-white to-[#E8F5EE] shadow-[0_20px_50px_rgba(11,77,58,0.08)] ring-1 ring-brand-green-100/80">
+            <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="relative p-8 sm:p-10 lg:p-12">
+                <Quote
+                  aria-hidden
+                  className="absolute right-6 top-6 h-16 w-16 text-brand-green-100 sm:right-8 sm:top-8"
+                />
+                <div className="relative space-y-5 text-base leading-8 text-neutral-600 sm:text-lg sm:leading-9">
+                  <p>
+                    When we started Well Health Trade International, our goal was simple but
+                    demanding: build a supplement company that families in Bangladesh could trust
+                    without hesitation. Health products should never feel confusing, exaggerated, or
+                    uncertain.
+                  </p>
+                  <p>
+                    Every decision we make — from ingredient selection to packaging, delivery, and
+                    customer support — is guided by quality, integrity, and genuine care. We are not
+                    here to chase shortcuts. We are here to earn confidence, one customer and one
+                    community at a time.
+                  </p>
+                  <p>
+                    Thank you for choosing us as part of your wellness journey. We remain committed
+                    to raising the standard of supplements in Bangladesh and serving you with the
+                    professionalism you deserve.
+                  </p>
+                </div>
+
+                <div className="relative mt-8 border-t border-brand-green-100/80 pt-6">
+                  <p className="font-heading text-lg font-bold text-neutral-900">
+                    Mst. Ayesha Rahman
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-brand-green-700">
+                    Managing Director & Founder
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-500">Well Health Trade International</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center bg-gradient-to-br from-brand-green-700 to-brand-green-900 p-8 sm:p-10 lg:p-12">
+                <div className="text-center">
+                  <span className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-white/95 font-heading text-3xl font-bold text-brand-green-800 shadow-lg ring-4 ring-white/30 sm:h-32 sm:w-32">
+                    AR
+                  </span>
+                  <p className="mt-6 font-heading text-xl font-bold text-white">Mst. Ayesha Rahman</p>
+                  <p className="mt-2 text-sm text-emerald-100">Managing Director & Founder</p>
+                  <p className="mt-6 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#F5E6C0] ring-1 ring-white/20">
+                    Trusted leadership
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      {/* Company timeline */}
+      <section
+        aria-labelledby="company-timeline-heading"
+        className="py-16 sm:py-20 lg:py-24"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <p className="font-bangla text-sm font-semibold text-brand-green-700">
+              কোম্পানির সময়রেখা
+            </p>
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.22em] text-brand-green-600">
+              Company timeline
+            </p>
+            <h2
+              className="mt-3 font-heading text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl"
+              id="company-timeline-heading"
+            >
+              Milestones on our journey
+            </h2>
+            <p className="mt-4 text-base leading-8 text-neutral-500">
+              Key moments that shaped our growth from a Dhaka-based initiative to a nationally
+              trusted wellness brand.
+            </p>
+          </div>
+
+          <ol className="relative mx-auto max-w-4xl space-y-0">
+            <div
+              aria-hidden
+              className="absolute bottom-4 left-[1.35rem] top-4 w-px bg-gradient-to-b from-brand-green-600 via-[#C9A24B] to-brand-green-200 sm:left-1/2 sm:-translate-x-px"
+            />
+            {companyTimeline.map((item, index) => {
+              const isLeft = index % 2 === 0;
+              return (
+                <li className="relative pb-10 last:pb-0" key={item.year}>
+                  <div
+                    className={cn(
+                      "grid items-center gap-6 sm:grid-cols-[1fr_auto_1fr]",
+                      !isLeft && "sm:[&>article:first-child]:order-3 sm:[&>article:last-child]:order-1"
+                    )}
+                  >
+                    <article
+                      className={cn(
+                        "rounded-2xl bg-white p-6 shadow-[0_12px_36px_rgba(15,23,42,0.05)] ring-1 ring-neutral-200/70 sm:col-start-1",
+                        isLeft ? "sm:col-start-1 sm:text-right" : "sm:col-start-3"
+                      )}
+                    >
+                      <p className="font-heading text-2xl font-bold text-brand-green-700">
+                        {item.year}
+                      </p>
+                      <h3 className="mt-2 font-heading text-lg font-bold text-neutral-900">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-7 text-neutral-600">{item.description}</p>
+                    </article>
+
+                    <div className="relative z-10 mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-green-600 text-sm font-bold text-white shadow-lg ring-4 ring-[#F7F8F9] sm:col-start-2">
+                      {String(index + 1).padStart(2, "0")}
+                    </div>
+
+                    <div
+                      aria-hidden
+                      className={cn("hidden sm:block", isLeft ? "sm:col-start-3" : "sm:col-start-1")}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </section>
 

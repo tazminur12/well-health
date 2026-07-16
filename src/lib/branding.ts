@@ -8,4 +8,4 @@ export const BRAND_LOGO = {
 
 export const BRAND_NAME = "Well Health Trade International";
 export const BRAND_NAME_SHORT = "Well Health";
-export const BRAND_TAGLINE = "Better Health, Better Life";
+export const BRAND_TAGLINE = "Good Health Good Life";

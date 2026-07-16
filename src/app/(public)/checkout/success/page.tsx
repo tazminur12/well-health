@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 
 import { CheckoutSuccessClient } from "@/components/public/checkout-success";
+import { buildPageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: "Order Confirmed | Well Health",
+export const metadata: Metadata = buildPageMetadata({
+  title: "Order Confirmed",
   description: "Your Well Health order has been placed successfully.",
-};
+  path: "/checkout/success",
+  noIndex: true,
+});
 
 export default function CheckoutSuccessPage() {
   return (

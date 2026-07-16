@@ -11,12 +11,22 @@ import { revalidatePath } from "next/cache";
 
 import { getSessionUser } from "@/lib/auth/session";
 import {
+  queueOrderEmails,
+  sendAdminNewOrderEmail,
+  sendOrderConfirmationEmail,
+} from "@/lib/email/orders";
+import {
   placeOrderSchema,
   type PlaceOrderInput,
 } from "@/lib/checkout/schemas";
+import {
+  createOrderAccessToken,
+  verifyOrderAccessToken,
+} from "@/lib/checkout/order-access-token";
 import { mapAdminToPublic } from "@/lib/products/public-mapper";
 import { mapProductToAdmin } from "@/lib/products/mapper";
 import { prisma } from "@/lib/prisma";
+import { rateLimitForRequest } from "@/lib/rate-limit/server";
 import {
   defaultStoreSettings,
   STORE_SETTINGS_KEY,
@@ -47,11 +57,39 @@ export type CheckoutContext = {
 export type PlacedOrderSummary = {
   id: string;
   orderNumber: string;
+  accessToken: string;
   total: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   email: string;
   customerName: string;
+};
+
+export type GuestOrderSummary = {
+  orderNumber: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  total: number;
+  subtotal: number;
+  shippingFee: number;
+  discount: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  status: string;
+  shippingZoneName: string | null;
+  shippingDetails: string;
+  shippingArea: string;
+  shippingDistrict: string;
+  createdAt: string;
+  items: Array<{
+    productName: string;
+    productSlug: string;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    imageUrl?: string;
+  }>;
 };
 
 export type CheckoutResult<T = undefined> = {
@@ -258,6 +296,9 @@ export async function validateCouponAction(input: {
   subtotal: number;
 }): Promise<CheckoutResult<AppliedCoupon>> {
   try {
+    const rateLimited = await rateLimitForRequest("checkout:coupon");
+    if (rateLimited) return rateLimited;
+
     if (!Number.isFinite(input.subtotal) || input.subtotal <= 0) {
       return { error: "Add items to your cart before applying a coupon." };
     }
@@ -283,6 +324,9 @@ export async function placeOrderAction(
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid checkout details" };
     }
+
+    const rateLimited = await rateLimitForRequest("checkout:place-order");
+    if (rateLimited) return rateLimited;
 
     const data = parsed.data;
     const session = await getSessionUser();
@@ -397,7 +441,7 @@ export async function placeOrderAction(
         data: {
           orderNumber,
           userId: session?.id,
-          email: data.email.trim().toLowerCase(),
+          email: data.email?.trim().toLowerCase() || "",
           phone,
           customerName: data.customerName.trim(),
           shippingFullName: data.shippingFullName.trim(),
@@ -444,6 +488,17 @@ export async function placeOrderAction(
       // notifications are best-effort
     }
 
+    const orderWithItems = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: { items: true },
+    });
+    if (orderWithItems) {
+      queueOrderEmails([
+        () => sendOrderConfirmationEmail(orderWithItems),
+        () => sendAdminNewOrderEmail(orderWithItems),
+      ]);
+    }
+
     revalidatePath("/orders");
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
@@ -453,6 +508,7 @@ export async function placeOrderAction(
       data: {
         id: order.id,
         orderNumber: order.orderNumber,
+        accessToken: createOrderAccessToken(order.id),
         total: Number(order.total),
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
@@ -472,42 +528,27 @@ export async function placeOrderAction(
   }
 }
 
-export async function getOrderByNumberAction(
-  orderNumber: string
-): Promise<
-  CheckoutResult<{
-    orderNumber: string;
-    customerName: string;
-    email: string;
-    phone: string;
-    total: number;
-    subtotal: number;
-    shippingFee: number;
-    discount: number;
-    paymentMethod: PaymentMethod;
-    paymentStatus: PaymentStatus;
-    status: string;
-    shippingZoneName: string | null;
-    shippingDetails: string;
-    shippingArea: string;
-    shippingDistrict: string;
-    createdAt: string;
-    items: Array<{
-      productName: string;
-      productSlug: string;
-      quantity: number;
-      unitPrice: number;
-      lineTotal: number;
-      imageUrl?: string;
-    }>;
-  }>
-> {
+export async function getOrderByAccessTokenAction(
+  token: string
+): Promise<CheckoutResult<GuestOrderSummary>> {
   try {
+    const rateLimited = await rateLimitForRequest("checkout:order-lookup");
+    if (rateLimited) return rateLimited;
+
+    if (!token || token.length < 20) {
+      return { error: "This confirmation link is invalid or has expired." };
+    }
+
+    const verified = verifyOrderAccessToken(token);
+    if (!verified) {
+      return { error: "This confirmation link is invalid or has expired." };
+    }
+
     const order = await prisma.order.findUnique({
-      where: { orderNumber },
+      where: { id: verified.orderId },
       include: { items: true },
     });
-    if (!order) return { error: "Order not found." };
+    if (!order) return { error: "This confirmation link is invalid or has expired." };
 
     return {
       data: {
@@ -538,7 +579,7 @@ export async function getOrderByNumberAction(
       },
     };
   } catch (error) {
-    console.error("getOrderByNumberAction:", error);
+    console.error("getOrderByAccessTokenAction:", error);
     return { error: "Could not load order." };
   }
 }

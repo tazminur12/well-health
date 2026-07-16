@@ -3,7 +3,10 @@ import { Hind_Siliguri, Inter, Sora } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 import { ChatWidget } from "@/components/chat/ChatWidget";
-import { BRAND_LOGO, BRAND_NAME } from "@/lib/branding";
+import { getPublicSiteAssets } from "@/lib/content/public-queries";
+import { buildRootMetadata } from "@/lib/seo/root-metadata";
+import { buildSiteStructuredData } from "@/lib/seo/site-structured-data";
+import { getPublicStoreSettings } from "@/lib/settings/public-queries";
 
 import "./globals.css";
 
@@ -28,26 +31,43 @@ const hindSiliguri = Hind_Siliguri({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: BRAND_NAME,
-  description: "Premium health supplements — clinical quality, nature-backed.",
-  icons: {
-    icon: [{ url: BRAND_LOGO.favicon, type: "image/png", sizes: "32x32" }],
-    apple: [{ url: BRAND_LOGO.appleTouchIcon, sizes: "180x180" }],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [settings, assets] = await Promise.all([
+    getPublicStoreSettings(),
+    getPublicSiteAssets(),
+  ]);
 
-export default function RootLayout({
+  return buildRootMetadata({
+    settings,
+    ogImage: assets.ogImageUrl,
+  });
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [settings, assets] = await Promise.all([
+    getPublicStoreSettings(),
+    getPublicSiteAssets(),
+  ]);
+
+  const structuredData = buildSiteStructuredData({
+    settings,
+    ogImage: assets.ogImageUrl,
+  });
+
   return (
     <html
-      lang="en"
+      lang="en-BD"
       className={`${sora.variable} ${inter.variable} ${hindSiliguri.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          type="application/ld+json"
+        />
         <Providers>
           {children}
           <ChatWidget />

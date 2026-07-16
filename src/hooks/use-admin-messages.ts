@@ -29,9 +29,10 @@ export function useAdminMessages(filter: ContactMessageFilter = "all") {
   });
 }
 
-export function useAdminMessagesUnreadCount() {
+export function useAdminMessagesUnreadCount(enabled = true) {
   return useQuery({
     queryKey: ADMIN_MESSAGES_UNREAD_KEY,
+    enabled,
     queryFn: async () => {
       const result = await getContactUnreadCountAction();
       if (result.error) throw new Error(result.error);

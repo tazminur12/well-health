@@ -10,7 +10,12 @@ export const checkoutItemSchema = z.object({
 });
 
 export const placeOrderSchema = z.object({
-  email: z.string().trim().email("Enter a valid email"),
+  email: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || z.string().email().safeParse(value).success, {
+      message: "Enter a valid email",
+    }),
   phone: z.string().trim().min(10, "Enter a valid phone number").max(20),
   customerName: z.string().trim().min(2, "Full name is required"),
   shippingFullName: z.string().trim().min(2, "Recipient name is required"),

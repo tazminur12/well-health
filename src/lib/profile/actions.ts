@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth/session";
 import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import { rateLimitForRequest } from "@/lib/rate-limit/server";
 import {
   customerAddressSchema,
   customerPasswordChangeSchema,
@@ -287,6 +288,9 @@ export async function changeCustomerPasswordAction(
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid password details" };
     }
+
+    const rateLimited = await rateLimitForRequest("auth:change-password", session.id);
+    if (rateLimited) return rateLimited;
 
     const supabase = await createClient();
     const { error: verifyError } = await supabase.auth.signInWithPassword({

@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   buildPrismaBlogData,
   mapBlogPostToAdmin,
@@ -66,7 +66,7 @@ function revalidateBlogPaths(slug?: string) {
 
 export async function listBlogPostsAction(): Promise<BlogActionResult<AdminBlogPost[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
     const posts = await prisma.blogPost.findMany({
       orderBy: [{ updatedAt: "desc" }],
     });
@@ -80,7 +80,7 @@ export async function getBlogPostAction(
   id: string
 ): Promise<BlogActionResult<AdminBlogPost>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
     const post = await prisma.blogPost.findUnique({ where: { id } });
     if (!post) return { error: "Post not found." };
     return { data: mapBlogPostToAdmin(post) };
@@ -93,7 +93,7 @@ export async function createBlogPostAction(
   input: BlogPostInput
 ): Promise<BlogActionResult<AdminBlogPost>> {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdminPermission("blog");
     const parsed = blogPostInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid post details" };
@@ -127,7 +127,7 @@ export async function updateBlogPostAction(
   input: BlogPostInput
 ): Promise<BlogActionResult<AdminBlogPost>> {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdminPermission("blog");
     const parsed = blogPostInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid post details" };
@@ -171,7 +171,7 @@ export async function updateBlogPostAction(
 
 export async function deleteBlogPostAction(id: string): Promise<BlogActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
     const existing = await prisma.blogPost.findUnique({ where: { id } });
     if (!existing) return { error: "Post not found." };
     await prisma.blogPost.delete({ where: { id } });
@@ -184,7 +184,7 @@ export async function deleteBlogPostAction(id: string): Promise<BlogActionResult
 
 export async function deleteBlogPostsAction(ids: string[]): Promise<BlogActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
     const parsed = blogPostIdsSchema.safeParse({ ids });
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid selection" };
@@ -215,7 +215,7 @@ export async function setBlogPostStatusAction(
   status: AdminBlogStatus
 ): Promise<BlogActionResult<AdminBlogPost>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
     const parsed = blogStatusSchema.safeParse(status);
     if (!parsed.success) return { error: "Invalid status." };
 
@@ -249,7 +249,7 @@ export async function toggleBlogPostFeaturedAction(
   id: string
 ): Promise<BlogActionResult<AdminBlogPost>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
     const existing = await prisma.blogPost.findUnique({ where: { id } });
     if (!existing) return { error: "Post not found." };
 

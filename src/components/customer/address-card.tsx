@@ -12,22 +12,7 @@ export type CustomerAddress = {
   isDefault: boolean;
 };
 
-export const bdDistricts = [
-  "Dhaka",
-  "Chattogram",
-  "Khulna",
-  "Rajshahi",
-  "Sylhet",
-  "Barishal",
-  "Rangpur",
-  "Mymensingh",
-  "Comilla",
-  "Gazipur",
-  "Narayanganj",
-  "Bogura",
-  "Jashore",
-  "Cox's Bazar",
-];
+export { bdDistricts, bdDivisions, getBdDistricts, getBdDivisionForDistrict, getBdThanas } from "@/lib/bd-locations";
 
 type AddressCardProps = {
   address: CustomerAddress;

@@ -6,6 +6,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   ClipboardList,
+  Handshake,
   Loader2,
   MessageSquare,
   Package,
@@ -303,7 +304,7 @@ export function AdminDashboardOverview() {
       </section>
 
       {/* Attention strip */}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
           {
             label: "Pending orders",
@@ -325,6 +326,13 @@ export function AdminDashboardOverview() {
             href: "/admin/messages",
             icon: MessageSquare,
             color: "text-sky-700 bg-sky-50 ring-sky-100",
+          },
+          {
+            label: "Distributor applications",
+            value: kpis.newDistributorApplications,
+            href: "/admin/distributors",
+            icon: Handshake,
+            color: "text-amber-700 bg-amber-50 ring-amber-100",
           },
           {
             label: "Reviews to moderate",

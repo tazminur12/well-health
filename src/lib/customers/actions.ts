@@ -4,7 +4,7 @@ import { Role, UserStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import type { AdminCustomer } from "@/components/admin/customers-data";
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   mapUserToAdminCustomer,
   toPrismaCustomerStatus,
@@ -35,7 +35,7 @@ function authErrorResult<T = undefined>(error: unknown): ActionResult<T> | null 
 
 export async function listCustomersAction(): Promise<ActionResult<AdminCustomer[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("customers");
     const users = await prisma.user.findMany({
       where: { role: Role.CUSTOMER },
       orderBy: { createdAt: "desc" },
@@ -53,7 +53,7 @@ export async function getCustomerAction(
   id: string
 ): Promise<ActionResult<AdminCustomer>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("customers");
     const user = await prisma.user.findFirst({
       where: { id, role: Role.CUSTOMER },
     });
@@ -71,7 +71,7 @@ export async function createCustomerAction(
   input: CreateCustomerInput
 ): Promise<ActionResult<AdminCustomer>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("customers");
     const parsed = createCustomerSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid customer details." };
@@ -149,7 +149,7 @@ export async function updateCustomerAction(
   input: UpdateCustomerInput
 ): Promise<ActionResult<AdminCustomer>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("customers");
     const parsed = updateCustomerSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid customer details." };
@@ -201,7 +201,7 @@ export async function setCustomerStatusAction(
   status: "Active" | "Suspended"
 ): Promise<ActionResult<AdminCustomer>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("customers");
     const existing = await prisma.user.findFirst({
       where: { id, role: Role.CUSTOMER },
     });
@@ -234,7 +234,7 @@ export async function setCustomerStatusAction(
 
 export async function deleteCustomerAction(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("customers");
     const existing = await prisma.user.findFirst({
       where: { id, role: Role.CUSTOMER },
     });

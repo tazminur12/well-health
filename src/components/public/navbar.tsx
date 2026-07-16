@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlignJustify,
   BookOpen,
+  Handshake,
   Heart,
   Home,
   Info,
@@ -35,6 +36,7 @@ const navLinks: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/shop", label: "Shop", icon: ShoppingBag },
   { href: "/blog", label: "Blog", icon: BookOpen },
   { href: "/about", label: "About Us", icon: Info },
+  { href: "/distributor", label: "Distributor", icon: Handshake },
   { href: "/contact", label: "Contact Us", icon: Mail },
 ];
 
@@ -103,21 +105,28 @@ export function Navbar({ user = null }: NavbarProps) {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="min-w-0 shrink">
-            <BrandLogo className="hidden sm:inline-flex" priority size="md" variant="full" />
-            <BrandLogo className="sm:hidden" priority size="md" variant="mark" />
+            <BrandLogo priority size="md" variant="lockup" />
           </div>
 
-          <nav className="hidden items-center gap-8 xl:flex">
+          <nav className="hidden items-center gap-5 2xl:gap-7 xl:flex">
             {navLinks.map((link) => {
               const isActive = isLinkActive(link.href);
+              const isDistributor = link.href === "/distributor";
 
               return (
                 <Link
                   key={link.href}
                   className={cn(
-                    "relative font-medium text-neutral-900 transition-colors duration-200 hover:text-brand-green-600",
+                    "relative whitespace-nowrap font-medium transition-colors duration-200",
+                    isDistributor
+                      ? "rounded-full bg-[#C9A24B]/12 px-3 py-1.5 text-[#8B6B2E] hover:bg-[#C9A24B]/20 hover:text-[#6F5420]"
+                      : "text-neutral-900 hover:text-brand-green-600",
                     isActive &&
-                      "text-brand-green-600 after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-brand-green-600"
+                      !isDistributor &&
+                      "text-brand-green-600 after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-brand-green-600",
+                    isActive &&
+                      isDistributor &&
+                      "bg-[#C9A24B]/20 text-[#6F5420] ring-1 ring-[#C9A24B]/35"
                   )}
                   href={link.href}
                 >
@@ -229,7 +238,6 @@ export function Navbar({ user = null }: NavbarProps) {
               className="min-w-0"
               onClick={closeMenu}
               size="sm"
-              subtitle="Better Health, Better Life"
               variant="lockup"
             />
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { AdminNotification, AdminNotificationType } from "@prisma/client";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import type {
   AdminNotificationDto,
   NotificationFilter,
@@ -56,7 +56,7 @@ export async function listAdminNotificationsAction(input?: {
   }>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("dashboard");
     const filter = input?.filter ?? "all";
     const limit = Math.min(Math.max(input?.limit ?? 50, 1), 100);
 
@@ -91,7 +91,7 @@ export async function getAdminUnreadNotificationCountAction(): Promise<
   NotificationActionResult<{ unreadCount: number }>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("dashboard");
     const unreadCount = await prisma.adminNotification.count({
       where: { isRead: false },
     });
@@ -105,7 +105,7 @@ export async function markNotificationReadAction(
   id: string
 ): Promise<NotificationActionResult<AdminNotificationDto>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("dashboard");
     const updated = await prisma.adminNotification.update({
       where: { id },
       data: { isRead: true },
@@ -121,7 +121,7 @@ export async function markAllNotificationsReadAction(): Promise<
   NotificationActionResult<{ count: number }>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("dashboard");
     const result = await prisma.adminNotification.updateMany({
       where: { isRead: false },
       data: { isRead: true },
@@ -137,7 +137,7 @@ export async function deleteNotificationAction(
   id: string
 ): Promise<NotificationActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("dashboard");
     await prisma.adminNotification.delete({ where: { id } });
     revalidateNotifications();
     return { success: "Notification deleted" };

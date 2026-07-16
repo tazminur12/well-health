@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   couponInputSchema,
   normalizeCouponCode,
@@ -116,7 +116,7 @@ function toPrismaData(input: CouponInput) {
 
 export async function listCouponsAction(): Promise<CouponActionResult<AdminCoupon[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("coupons");
     const rows = await prisma.coupon.findMany({
       orderBy: [{ updatedAt: "desc" }],
     });
@@ -130,7 +130,7 @@ export async function createCouponAction(
   input: CouponInput
 ): Promise<CouponActionResult<AdminCoupon>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("coupons");
     const parsed = couponInputSchema.safeParse({
       ...input,
       code: normalizeCouponCode(input.code),
@@ -152,7 +152,7 @@ export async function updateCouponAction(
   input: CouponInput
 ): Promise<CouponActionResult<AdminCoupon>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("coupons");
     const parsed = couponInputSchema.safeParse({
       ...input,
       code: normalizeCouponCode(input.code),
@@ -174,7 +174,7 @@ export async function updateCouponAction(
 
 export async function deleteCouponAction(id: string): Promise<CouponActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("coupons");
     await prisma.coupon.delete({ where: { id } });
     revalidateCoupons();
     return { success: "Coupon deleted" };
@@ -187,7 +187,7 @@ export async function toggleCouponActiveAction(
   id: string
 ): Promise<CouponActionResult<AdminCoupon>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("coupons");
     const existing = await prisma.coupon.findUnique({ where: { id } });
     if (!existing) return { error: "Coupon not found." };
 

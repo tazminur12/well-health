@@ -1,19 +1,39 @@
 import type { Metadata } from "next";
 
 import { LegalPage } from "@/components/public/legal-page";
+import { JsonLd } from "@/components/seo/json-ld";
+import { SEO_KEYWORDS } from "@/lib/seo/keywords";
+import { getSeoAssets } from "@/lib/seo/page-assets";
+import { buildLegalPageStructuredData } from "@/lib/seo/structured-data";
+import { buildPageMetadata } from "@/lib/seo/site";
 import { getPublicStoreSettings } from "@/lib/settings/public-queries";
 
-export const metadata: Metadata = {
-  title: "Terms of Service | Well Health Trade International",
-  description:
-    "Terms and conditions for using the Well Health Trade International website and online store.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { ogImage } = await getSeoAssets();
+
+  return buildPageMetadata({
+    title: "Terms of Service",
+    description:
+      "Read the terms and conditions for using the Well Health Trade International website, placing orders, and creating a customer account in Bangladesh.",
+    path: "/terms",
+    keywords: [...SEO_KEYWORDS.legal, "terms of service", "online store terms"],
+    ogImage,
+  });
+}
 
 export default async function TermsOfServicePage() {
   const settings = await getPublicStoreSettings();
+  const structuredData = buildLegalPageStructuredData({
+    path: "/terms",
+    name: "Terms of Service",
+    description:
+      "Terms and conditions for using the Well Health Trade International website and online store.",
+  });
 
   return (
-    <LegalPage
+    <>
+      <JsonLd data={structuredData} />
+      <LegalPage
       description="Please read these terms carefully before using our website, placing an order, or creating an account."
       kind="terms"
       sections={[
@@ -160,5 +180,6 @@ export default async function TermsOfServicePage() {
       title="Terms of Service"
       updatedAt="13 July 2026"
     />
+    </>
   );
 }

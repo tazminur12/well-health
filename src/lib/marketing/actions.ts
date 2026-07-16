@@ -3,7 +3,7 @@
 import { Prisma, Role, UserStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { sendMarketingEmail, wrapMarketingEmailHtml } from "@/lib/email/marketing";
 import {
   marketingCampaignInputSchema,
@@ -128,7 +128,7 @@ export async function getMarketingMetaAction(): Promise<
   }>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("marketing");
 
     const [allCustomers, vipCustomers, withEmail, withPhone] = await Promise.all([
       prisma.user.count({ where: { role: Role.CUSTOMER, status: UserStatus.ACTIVE } }),
@@ -170,7 +170,7 @@ export async function listMarketingCampaignsAction(
   channel?: MarketingChannel
 ): Promise<MarketingActionResult<AdminMarketingCampaign[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("marketing");
     const rows = await prisma.marketingCampaign.findMany({
       where: channel ? { channel } : undefined,
       orderBy: { createdAt: "desc" },
@@ -185,7 +185,7 @@ export async function createMarketingCampaignAction(
   input: MarketingCampaignInput
 ): Promise<MarketingActionResult<AdminMarketingCampaign>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("marketing");
     const parsed = marketingCampaignInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid campaign data." };
@@ -218,7 +218,7 @@ export async function updateMarketingCampaignAction(
   input: MarketingCampaignInput
 ): Promise<MarketingActionResult<AdminMarketingCampaign>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("marketing");
     const parsed = marketingCampaignInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid campaign data." };
@@ -258,7 +258,7 @@ export async function deleteMarketingCampaignAction(
   id: string
 ): Promise<MarketingActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("marketing");
     await prisma.marketingCampaign.delete({ where: { id } });
     revalidatePath("/admin/marketing");
     return { success: "Campaign deleted." };
@@ -271,7 +271,7 @@ export async function sendMarketingCampaignAction(
   id: string
 ): Promise<MarketingActionResult<AdminMarketingCampaign>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("marketing");
 
     const campaign = await prisma.marketingCampaign.findUnique({ where: { id } });
     if (!campaign) return { error: "Campaign not found." };

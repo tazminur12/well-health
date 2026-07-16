@@ -71,6 +71,7 @@ export function useOrderMutations() {
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
     void queryClient.invalidateQueries({ queryKey: ADMIN_ORDER_STATS_KEY });
+    void queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
   };
 
   const createOrder = useMutation({

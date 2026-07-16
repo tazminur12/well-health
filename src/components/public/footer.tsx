@@ -29,6 +29,7 @@ const exploreLinks = [
   { label: "Shop all", href: "/shop" },
   { label: "Blog", href: "/blog" },
   { label: "About us", href: "/about" },
+  { label: "Become a distributor", href: "/distributor" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -160,12 +161,11 @@ export function Footer({ settings }: FooterProps) {
         {/* Main columns */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="space-y-5 lg:col-span-4">
-            <BrandLogo size="lg" tone="dark" variant="full" />
+            <BrandLogo size="md" tone="dark" variant="lockup" />
 
             <p className="max-w-sm text-sm leading-7 text-white/65">
-              {settings.tagline
-                ? `${settings.tagline}. Premium supplements with clinical quality and nature-backed care for everyday wellbeing.`
-                : "Premium health supplements with clinical quality and nature-backed formulations for everyday wellbeing across Bangladesh."}
+              Premium health supplements with clinical quality and nature-backed
+              formulations for everyday wellbeing across Bangladesh.
             </p>
 
             {socialLinks.length > 0 ? (

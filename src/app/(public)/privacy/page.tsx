@@ -1,19 +1,39 @@
 import type { Metadata } from "next";
 
 import { LegalPage } from "@/components/public/legal-page";
+import { JsonLd } from "@/components/seo/json-ld";
+import { SEO_KEYWORDS } from "@/lib/seo/keywords";
+import { getSeoAssets } from "@/lib/seo/page-assets";
+import { buildLegalPageStructuredData } from "@/lib/seo/structured-data";
+import { buildPageMetadata } from "@/lib/seo/site";
 import { getPublicStoreSettings } from "@/lib/settings/public-queries";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy | Well Health Trade International",
-  description:
-    "How Well Health Trade International collects, uses, and protects your personal information.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { ogImage } = await getSeoAssets();
+
+  return buildPageMetadata({
+    title: "Privacy Policy",
+    description:
+      "Learn how Well Health Trade International collects, uses, stores, and protects your personal information when you shop or contact us in Bangladesh.",
+    path: "/privacy",
+    keywords: [...SEO_KEYWORDS.legal, "privacy policy", "data protection Bangladesh"],
+    ogImage,
+  });
+}
 
 export default async function PrivacyPolicyPage() {
   const settings = await getPublicStoreSettings();
+  const structuredData = buildLegalPageStructuredData({
+    path: "/privacy",
+    name: "Privacy Policy",
+    description:
+      "How Well Health Trade International collects, uses, and protects your personal information.",
+  });
 
   return (
-    <LegalPage
+    <>
+      <JsonLd data={structuredData} />
+      <LegalPage
       description="Learn how we collect, use, store, and protect your personal information when you shop or contact Well Health."
       kind="privacy"
       sections={[
@@ -134,5 +154,6 @@ export default async function PrivacyPolicyPage() {
       title="Privacy Policy"
       updatedAt="13 July 2026"
     />
+    </>
   );
 }

@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   createReviewSchema,
   reviewReplySchema,
@@ -101,7 +101,7 @@ function revalidateReviews(productId?: string) {
 
 export async function listReviewsAction(): Promise<ReviewActionResult<AdminReview[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const rows = await prisma.productReview.findMany({
       include: reviewInclude,
       orderBy: [{ createdAt: "desc" }],
@@ -116,7 +116,7 @@ export async function listReviewProductOptionsAction(): Promise<
   ReviewActionResult<ReviewProductOption[]>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const rows = await prisma.product.findMany({
       select: { id: true, name: true, sku: true },
       orderBy: [{ name: "asc" }],
@@ -131,7 +131,7 @@ export async function createReviewAction(
   input: CreateReviewInput
 ): Promise<ReviewActionResult<AdminReview>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const parsed = createReviewSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid review" };
@@ -173,7 +173,7 @@ export async function setReviewStatusAction(
   status: ReviewStatusValue
 ): Promise<ReviewActionResult<AdminReview>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const parsed = reviewStatusSchema.safeParse(status);
     if (!parsed.success) return { error: "Invalid status" };
 
@@ -205,7 +205,7 @@ export async function toggleReviewFeaturedAction(
   id: string
 ): Promise<ReviewActionResult<AdminReview>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const existing = await prisma.productReview.findUnique({ where: { id } });
     if (!existing) return { error: "Review not found." };
     if (existing.status !== "APPROVED" && !existing.isFeatured) {
@@ -233,7 +233,7 @@ export async function updateReviewReplyAction(
   adminReply: string
 ): Promise<ReviewActionResult<AdminReview>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const parsed = reviewReplySchema.safeParse({ adminReply });
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid reply" };
@@ -254,7 +254,7 @@ export async function updateReviewReplyAction(
 
 export async function deleteReviewAction(id: string): Promise<ReviewActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("reviews");
     const existing = await prisma.productReview.findUnique({ where: { id } });
     if (!existing) return { error: "Review not found." };
     await prisma.productReview.delete({ where: { id } });

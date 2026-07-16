@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin/profile-schemas";
 import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import { rateLimitForRequest } from "@/lib/rate-limit/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type AdminProfile = {
@@ -167,6 +168,9 @@ export async function changeAdminPasswordAction(
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid password details" };
     }
+
+    const rateLimited = await rateLimitForRequest("auth:change-password", admin.id);
+    if (rateLimited) return rateLimited;
 
     const supabase = await createClient();
     const { error: verifyError } = await supabase.auth.signInWithPassword({

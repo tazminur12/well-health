@@ -9,7 +9,7 @@ import {
   UserStatus,
 } from "@prisma/client";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   ORDER_STATUS_LABELS,
   type OrderStatusValue,
@@ -37,6 +37,7 @@ export type DashboardKpis = {
   processingOrders: number;
   unpaidOrders: number;
   unreadMessages: number;
+  newDistributorApplications: number;
   pendingReviews: number;
   activeProducts: number;
 };
@@ -138,7 +139,7 @@ export async function getDashboardOverviewAction(
   rangeDays: 7 | 30 = 30
 ): Promise<DashboardActionResult<DashboardOverview>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("dashboard");
 
     const now = new Date();
     const currentStart = startOfDay(addDays(now, -(rangeDays - 1)));
@@ -156,6 +157,7 @@ export async function getDashboardOverviewAction(
       statusGrouped,
       unpaidOrders,
       unreadMessages,
+      newDistributorApplications,
       pendingReviews,
       activeProducts,
       lowStockCountRows,
@@ -218,6 +220,7 @@ export async function getDashboardOverviewAction(
         },
       }),
       prisma.contactMessage.count({ where: { status: "NEW" } }),
+      prisma.distributorApplication.count({ where: { status: "NEW" } }),
       prisma.productReview.count({ where: { status: ReviewStatus.PENDING } }),
       prisma.product.count({ where: { status: ProductStatus.ACTIVE } }),
       prisma.$queryRaw<Array<{ count: number }>>`
@@ -357,6 +360,7 @@ export async function getDashboardOverviewAction(
           processingOrders: statusMap.PROCESSING ?? 0,
           unpaidOrders,
           unreadMessages,
+          newDistributorApplications,
           pendingReviews,
           activeProducts,
         },

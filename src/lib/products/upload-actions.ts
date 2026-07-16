@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 
@@ -18,7 +18,7 @@ export async function saveProductImagesAction(
   formData: FormData
 ): Promise<UploadImagesResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
@@ -93,7 +93,7 @@ export async function deleteProductImageAction(
   imageId: string
 ): Promise<{ error?: string }> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
 
     const image = await prisma.productImage.findFirst({
       where: { id: imageId, productId },

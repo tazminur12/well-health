@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import type { AdminProduct } from "@/components/admin/products-data";
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { prisma } from "@/lib/prisma";
 import {
   buildPrismaProductData,
@@ -83,7 +83,7 @@ function handleActionError<T = undefined>(error: unknown): ProductActionResult<T
 
 export async function listProductsAction(): Promise<ProductActionResult<AdminProduct[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const products = await prisma.product.findMany({
       include: { category: true, images: { orderBy: { sortOrder: "asc" } } },
       orderBy: [{ updatedAt: "desc" }],
@@ -98,7 +98,7 @@ export async function getProductAction(
   id: string
 ): Promise<ProductActionResult<AdminProduct>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const product = await prisma.product.findUnique({
       where: { id },
       include: { category: true, images: { orderBy: { sortOrder: "asc" } } },
@@ -114,7 +114,7 @@ export async function createProductAction(
   input: ProductInput
 ): Promise<ProductActionResult<AdminProduct>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const parsed = productInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid product details" };
@@ -138,7 +138,7 @@ export async function updateProductAction(
   input: ProductInput
 ): Promise<ProductActionResult<AdminProduct>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const parsed = productInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid product details" };
@@ -161,7 +161,7 @@ export async function updateProductAction(
 
 export async function deleteProductAction(id: string): Promise<ProductActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     await prisma.product.delete({ where: { id } });
     revalidatePath("/admin/products");
     return {};
@@ -172,7 +172,7 @@ export async function deleteProductAction(id: string): Promise<ProductActionResu
 
 export async function deleteProductsAction(ids: string[]): Promise<ProductActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const parsed = productIdsSchema.safeParse({ ids });
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid selection" };
@@ -192,7 +192,7 @@ export async function toggleProductFeaturedAction(
   id: string
 ): Promise<ProductActionResult<AdminProduct>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) return { error: "Product not found." };
 
@@ -214,7 +214,7 @@ export async function setProductStatusAction(
   status: "Active" | "Draft" | "Archived"
 ): Promise<ProductActionResult<AdminProduct>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const parsedStatus = productStatusSchema.safeParse(status);
     if (!parsedStatus.success) return { error: "Invalid status" };
 
@@ -233,7 +233,7 @@ export async function setProductStatusAction(
 
 export async function archiveProductsAction(ids: string[]): Promise<ProductActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("products");
     const parsed = productIdsSchema.safeParse({ ids });
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid selection" };

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   adjustStockSchema,
   getStockBucket,
@@ -79,7 +79,7 @@ export async function listInventoryAction(): Promise<
   InventoryActionResult<InventoryItem[]>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("inventory");
     const rows = await prisma.product.findMany({
       include: inventoryInclude,
       orderBy: [{ stock: "asc" }, { name: "asc" }],
@@ -94,7 +94,7 @@ export async function updateInventoryStockAction(
   input: unknown
 ): Promise<InventoryActionResult<InventoryItem>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("inventory");
     const parsed = updateStockSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid stock update" };
@@ -122,7 +122,7 @@ export async function adjustInventoryStockAction(
   input: unknown
 ): Promise<InventoryActionResult<InventoryItem>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("inventory");
     const parsed = adjustStockSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid adjustment" };

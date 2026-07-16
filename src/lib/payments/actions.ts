@@ -8,7 +8,7 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   PAYMENT_METHOD_LABELS,
   type PaymentMethodValue,
@@ -109,7 +109,7 @@ export async function getPaymentSettingsAction(): Promise<
   PaymentActionResult<PaymentSettings>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("payments");
     return { data: await readPaymentSettings() };
   } catch (error) {
     return handleError(error);
@@ -120,7 +120,7 @@ export async function updatePaymentSettingsAction(
   input: unknown
 ): Promise<PaymentActionResult<PaymentSettings>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("payments");
     const parsed = paymentSettingsSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid payment settings." };
@@ -170,7 +170,7 @@ export async function getPaymentOverviewAction(): Promise<
   PaymentActionResult<PaymentOverview>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("payments");
     const settings = await readPaymentSettings();
 
     const orders = await prisma.order.findMany({

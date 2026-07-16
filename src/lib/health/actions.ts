@@ -1,6 +1,6 @@
 "use server";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import type {
   ApiHealthReport,
   HealthServiceResult,
@@ -305,7 +305,7 @@ async function checkBkash(): Promise<HealthServiceResult> {
 
 export async function runApiHealthCheckAction(): Promise<HealthActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("settings");
     const started = Date.now();
 
     const services = await Promise.all([

@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   shippingCourierInputSchema,
   shippingZoneInputSchema,
@@ -114,7 +114,7 @@ export async function listShippingZonesAction(): Promise<
   ShippingActionResult<AdminShippingZone[]>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const rows = await prisma.shippingZone.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
@@ -128,7 +128,7 @@ export async function createShippingZoneAction(
   input: ShippingZoneInput
 ): Promise<ShippingActionResult<AdminShippingZone>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const parsed = shippingZoneInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid zone" };
@@ -162,7 +162,7 @@ export async function updateShippingZoneAction(
   input: ShippingZoneInput
 ): Promise<ShippingActionResult<AdminShippingZone>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const parsed = shippingZoneInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid zone" };
@@ -194,7 +194,7 @@ export async function updateShippingZoneAction(
 
 export async function deleteShippingZoneAction(id: string): Promise<ShippingActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     await prisma.shippingZone.delete({ where: { id } });
     revalidateShipping();
     return { success: "Zone deleted" };
@@ -207,7 +207,7 @@ export async function toggleShippingZoneActiveAction(
   id: string
 ): Promise<ShippingActionResult<AdminShippingZone>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const existing = await prisma.shippingZone.findUnique({ where: { id } });
     if (!existing) return { error: "Zone not found." };
     const row = await prisma.shippingZone.update({
@@ -228,7 +228,7 @@ export async function listShippingCouriersAction(): Promise<
   ShippingActionResult<AdminShippingCourier[]>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const rows = await prisma.shippingCourier.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
@@ -242,7 +242,7 @@ export async function createShippingCourierAction(
   input: ShippingCourierInput
 ): Promise<ShippingActionResult<AdminShippingCourier>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const parsed = shippingCourierInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid courier" };
@@ -272,7 +272,7 @@ export async function updateShippingCourierAction(
   input: ShippingCourierInput
 ): Promise<ShippingActionResult<AdminShippingCourier>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const parsed = shippingCourierInputSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid courier" };
@@ -300,7 +300,7 @@ export async function updateShippingCourierAction(
 
 export async function deleteShippingCourierAction(id: string): Promise<ShippingActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     await prisma.shippingCourier.delete({ where: { id } });
     revalidateShipping();
     return { success: "Courier deleted" };
@@ -313,7 +313,7 @@ export async function toggleShippingCourierActiveAction(
   id: string
 ): Promise<ShippingActionResult<AdminShippingCourier>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("shipping");
     const existing = await prisma.shippingCourier.findUnique({ where: { id } });
     if (!existing) return { error: "Courier not found." };
     const row = await prisma.shippingCourier.update({

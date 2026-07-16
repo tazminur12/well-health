@@ -13,7 +13,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { bdDistricts } from "@/components/customer/address-card";
+import {
+  bdDivisions,
+  getBdDistricts,
+  getBdDivisionForDistrict,
+  getBdThanas,
+} from "@/components/customer/address-card";
 import { Button } from "@/components/ui/button";
 import { useAdminCustomers } from "@/hooks/use-admin-customers";
 import { useOrderMutations } from "@/hooks/use-admin-orders";
@@ -63,6 +68,9 @@ export function AdminOrderForm() {
   const [phone, setPhone] = useState("");
   const [shippingFullName, setShippingFullName] = useState("");
   const [shippingPhone, setShippingPhone] = useState("");
+  const [shippingDivision, setShippingDivision] = useState(
+    getBdDivisionForDistrict("Dhaka")
+  );
   const [shippingDistrict, setShippingDistrict] = useState("Dhaka");
   const [shippingArea, setShippingArea] = useState("");
   const [shippingDetails, setShippingDetails] = useState("");
@@ -374,28 +382,73 @@ export function AdminOrderForm() {
                 </>
               ) : null}
               <label className="space-y-1.5 text-sm">
-                <span className="font-medium text-neutral-700">District</span>
+                <span className="font-medium text-neutral-700">Division</span>
                 <select
                   className={fieldClass}
-                  onChange={(event) => setShippingDistrict(event.target.value)}
+                  onChange={(event) => {
+                    setShippingDivision(event.target.value);
+                    setShippingDistrict("");
+                    setShippingArea("");
+                  }}
                   required
-                  value={shippingDistrict}
+                  value={shippingDivision}
                 >
-                  {bdDistricts.map((district) => (
-                    <option key={district} value={district}>
-                      {district}
+                  <option value="">Select division</option>
+                  {bdDivisions.map((division) => (
+                    <option key={division} value={division}>
+                      {division}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="space-y-1.5 text-sm">
-                <span className="font-medium text-neutral-700">Area / Thana</span>
-                <input
+                <span className="font-medium text-neutral-700">District</span>
+                <select
                   className={fieldClass}
+                  disabled={!shippingDivision}
+                  onChange={(event) => {
+                    setShippingDistrict(event.target.value);
+                    setShippingArea("");
+                  }}
+                  required
+                  value={shippingDistrict}
+                >
+                  <option value="">
+                    {shippingDivision ? "Select district" : "Select division first"}
+                  </option>
+                  {getBdDistricts(shippingDivision).map((district) => (
+                    <option key={district} value={district}>
+                      {district}
+                    </option>
+                  ))}
+                  {shippingDistrict &&
+                  !getBdDistricts(shippingDivision).includes(shippingDistrict) ? (
+                    <option value={shippingDistrict}>{shippingDistrict}</option>
+                  ) : null}
+                </select>
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-medium text-neutral-700">Area / Thana</span>
+                <select
+                  className={fieldClass}
+                  disabled={!shippingDistrict}
                   onChange={(event) => setShippingArea(event.target.value)}
                   required
                   value={shippingArea}
-                />
+                >
+                  <option value="">
+                    {shippingDistrict ? "Select thana" : "Select district first"}
+                  </option>
+                  {getBdThanas(shippingDistrict).map((thana) => (
+                    <option key={thana} value={thana}>
+                      {thana}
+                    </option>
+                  ))}
+                  {shippingArea &&
+                  !getBdThanas(shippingDistrict).includes(shippingArea) ? (
+                    <option value={shippingArea}>{shippingArea}</option>
+                  ) : null}
+                </select>
               </label>
               <label className="space-y-1.5 text-sm sm:col-span-2">
                 <span className="font-medium text-neutral-700">Address details</span>

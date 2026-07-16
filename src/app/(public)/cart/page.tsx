@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 
 import { CartPageClient } from "@/components/public/cart-page";
+import { buildPageMetadata } from "@/lib/seo/site";
 import { getPublicStoreSettings } from "@/lib/settings/public-queries";
 import { getPublicShippingZones } from "@/lib/shipping/public-queries";
 
-export const metadata: Metadata = {
-  title: "Shopping Cart | Well Health",
-  description: "Review your Well Health cart and proceed to secure checkout.",
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: "Shopping Cart",
+  description: "Review your Well Health supplement cart and proceed to secure checkout.",
+  path: "/cart",
+  noIndex: true,
+});
 
 export default async function CartPage() {
   const [settings, shippingZones] = await Promise.all([

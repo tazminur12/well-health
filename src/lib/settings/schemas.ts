@@ -39,11 +39,11 @@ export const defaultStoreSettings: StoreSettings = {
   storeName: "Well Health Trade International",
   tagline: "Better Health, Better Life",
   supportEmail: "info@wellhealthint.com",
-  supportPhone: "+880 1712 345 678",
-  whatsapp: "+8801712345678",
-  addressLine1: "House 24, Road 12, Dhanmondi",
+  supportPhone: "+880 1906 056 948",
+  whatsapp: "+8801906056948",
+  addressLine1: "House #2, Road #2, Mohammadpur",
   addressLine2: "",
-  city: "Dhaka",
+  city: "Dhaka-1207",
   country: "Bangladesh",
   workingHours: "Sat - Thu: 9.00 AM - 6.00 PM",
   facebookUrl: "",
@@ -99,4 +99,14 @@ export function googleMapsEmbedUrl(settings: StoreSettings) {
 
 export function phoneTelHref(phone: string) {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
+}
+
+/** WhatsApp click-to-chat link (Bangladesh numbers normalized to 880). */
+export function whatsappChatHref(phone: string, message?: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+  const normalized = digits.startsWith("880") ? digits : `880${digits.replace(/^0/, "")}`;
+  const base = `https://wa.me/${normalized}`;
+  if (!message?.trim()) return base;
+  return `${base}?text=${encodeURIComponent(message.trim())}`;
 }

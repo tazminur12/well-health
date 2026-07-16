@@ -17,7 +17,12 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
-import { bdDistricts } from "@/components/customer/address-card";
+import {
+  bdDivisions,
+  getBdDistricts,
+  getBdDivisionForDistrict,
+  getBdThanas,
+} from "@/components/customer/address-card";
 import {
   getCheckoutContextAction,
   placeOrderAction,
@@ -57,6 +62,7 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
   const [phone, setPhone] = useState("");
   const [shippingFullName, setShippingFullName] = useState("");
   const [shippingPhone, setShippingPhone] = useState("");
+  const [shippingDivision, setShippingDivision] = useState("");
   const [shippingDistrict, setShippingDistrict] = useState("");
   const [shippingArea, setShippingArea] = useState("");
   const [shippingDetails, setShippingDetails] = useState("");
@@ -110,6 +116,7 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
   function applyAddress(address: CheckoutAddress) {
     setShippingFullName(address.fullName);
     setShippingPhone(address.phone);
+    setShippingDivision(getBdDivisionForDistrict(address.district));
     setShippingDistrict(address.district);
     setShippingArea(address.area);
     setShippingDetails(address.details);
@@ -119,15 +126,16 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
   function validateStep(current: number) {
     if (current === 1) {
       if (customerName.trim().length < 2) return "Enter your full name.";
-      if (!email.includes("@")) return "Enter a valid email.";
+      if (email.trim() && !email.includes("@")) return "Enter a valid email.";
       if (phone.trim().length < 10) return "Enter a valid phone number.";
       return null;
     }
     if (current === 2) {
       if (shippingFullName.trim().length < 2) return "Enter recipient name.";
       if (shippingPhone.trim().length < 10) return "Enter a valid shipping phone.";
+      if (!shippingDivision) return "Select a division.";
       if (!shippingDistrict) return "Select a district.";
-      if (shippingArea.trim().length < 2) return "Enter area / thana.";
+      if (shippingArea.trim().length < 2) return "Select area / thana.";
       if (shippingDetails.trim().length < 5) return "Enter a detailed address.";
       if (!zoneId) return "Select a delivery area.";
       return null;
@@ -224,7 +232,7 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
         "Order placed",
         `${result.data.orderNumber} is confirmed. Thank you for shopping with Well Health.`
       );
-      router.push(`/checkout/success?order=${encodeURIComponent(result.data.orderNumber)}`);
+      router.push(`/checkout/success?token=${encodeURIComponent(result.data.accessToken)}`);
     });
   }
 
@@ -338,7 +346,8 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
                     Contact details
                   </h2>
                   <p className="mt-0.5 text-xs text-neutral-500">
-                    We&apos;ll send order updates to this email and phone
+                    We&apos;ll send order updates to your phone
+                    {email.trim() ? " and email" : ""}
                   </p>
                 </header>
                 <div className="grid gap-4 p-5 sm:grid-cols-2">
@@ -349,10 +358,11 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
                       value={customerName}
                     />
                   </Field>
-                  <Field label="Email">
+                  <Field label="Email (optional)">
                     <input
                       className={fieldClass}
                       onChange={(event) => setEmail(event.target.value)}
+                      placeholder="Optional"
                       type="email"
                       value={email}
                     />
@@ -467,26 +477,68 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
                       </>
                     ) : null}
 
-                    <Field label="District">
+                    <Field label="Division">
                       <select
                         className={fieldClass}
-                        onChange={(event) => setShippingDistrict(event.target.value)}
-                        value={shippingDistrict}
+                        onChange={(event) => {
+                          setShippingDivision(event.target.value);
+                          setShippingDistrict("");
+                          setShippingArea("");
+                        }}
+                        value={shippingDivision}
                       >
-                        <option value="">Select district</option>
-                        {bdDistricts.map((district) => (
-                          <option key={district} value={district}>
-                            {district}
+                        <option value="">Select division</option>
+                        {bdDivisions.map((division) => (
+                          <option key={division} value={division}>
+                            {division}
                           </option>
                         ))}
                       </select>
                     </Field>
-                    <Field label="Area / Thana">
-                      <input
+                    <Field label="District">
+                      <select
                         className={fieldClass}
+                        disabled={!shippingDivision}
+                        onChange={(event) => {
+                          setShippingDistrict(event.target.value);
+                          setShippingArea("");
+                        }}
+                        value={shippingDistrict}
+                      >
+                        <option value="">
+                          {shippingDivision ? "Select district" : "Select division first"}
+                        </option>
+                        {getBdDistricts(shippingDivision).map((district) => (
+                          <option key={district} value={district}>
+                            {district}
+                          </option>
+                        ))}
+                        {shippingDistrict &&
+                        !getBdDistricts(shippingDivision).includes(shippingDistrict) ? (
+                          <option value={shippingDistrict}>{shippingDistrict}</option>
+                        ) : null}
+                      </select>
+                    </Field>
+                    <Field label="Area / Thana">
+                      <select
+                        className={fieldClass}
+                        disabled={!shippingDistrict}
                         onChange={(event) => setShippingArea(event.target.value)}
                         value={shippingArea}
-                      />
+                      >
+                        <option value="">
+                          {shippingDistrict ? "Select thana" : "Select district first"}
+                        </option>
+                        {getBdThanas(shippingDistrict).map((thana) => (
+                          <option key={thana} value={thana}>
+                            {thana}
+                          </option>
+                        ))}
+                        {shippingArea &&
+                        !getBdThanas(shippingDistrict).includes(shippingArea) ? (
+                          <option value={shippingArea}>{shippingArea}</option>
+                        ) : null}
+                      </select>
                     </Field>
                     <Field label="Detailed address" className="sm:col-span-2">
                       <textarea
@@ -650,8 +702,14 @@ export function CheckoutPageClient({ shippingZones }: CheckoutPageClientProps) {
                       <dt>Contact</dt>
                       <dd className="text-right font-medium text-neutral-900">
                         {customerName}
-                        <br />
-                        <span className="text-xs font-normal text-neutral-500">{email}</span>
+                        {email.trim() ? (
+                          <>
+                            <br />
+                            <span className="text-xs font-normal text-neutral-500">
+                              {email}
+                            </span>
+                          </>
+                        ) : null}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-3">

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { prisma } from "@/lib/prisma";
 import {
   STORE_SETTINGS_KEY,
@@ -51,7 +51,7 @@ function revalidateStorefront() {
 
 export async function getStoreSettingsAction(): Promise<SettingsActionResult<StoreSettings>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("settings");
     return { data: await loadSettings() };
   } catch (error) {
     return handleError(error);
@@ -62,7 +62,7 @@ export async function updateStoreSettingsAction(
   input: StoreSettings
 ): Promise<SettingsActionResult<StoreSettings>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("settings");
     const normalized = normalizeStoreSettingsInput(input);
     const parsed = storeSettingsSchema.safeParse(normalized);
     if (!parsed.success) {

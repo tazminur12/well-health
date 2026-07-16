@@ -7,19 +7,31 @@ import { CTABanner } from "@/components/public/cta-banner";
 import { NewsletterStrip } from "@/components/public/newsletter-strip";
 import { PageHero } from "@/components/public/page-hero";
 import { TrustBadges } from "@/components/public/trust-badges";
+import { JsonLd } from "@/components/seo/json-ld";
 import { BLOG_CATEGORIES } from "@/lib/blog/mapper";
 import { categoryToSlug, listPublicBlogPosts } from "@/lib/blog/public-queries";
+import { SEO_KEYWORDS } from "@/lib/seo/keywords";
+import { getSeoAssets } from "@/lib/seo/page-assets";
+import { buildBlogListingStructuredData } from "@/lib/seo/structured-data";
+import { buildPageMetadata } from "@/lib/seo/site";
 import { cn } from "@/lib/utils";
-
-export const metadata: Metadata = {
-  title: "Blog | Well Health Trade International",
-  description:
-    "Evidence-minded wellness tips, supplement guides, and company updates from Well Health Trade International.",
-};
 
 type BlogPageProps = {
   searchParams: Promise<{ category?: string }>;
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { ogImage } = await getSeoAssets();
+
+  return buildPageMetadata({
+    title: "Wellness Blog — Health Tips & Supplement Guides",
+    description:
+      "Read evidence-minded wellness tips, supplement guides, nutrition advice, and company updates from Well Health Trade International in Bangladesh.",
+    path: "/blog",
+    keywords: [...SEO_KEYWORDS.blog],
+    ogImage,
+  });
+}
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const params = await searchParams;
@@ -34,9 +46,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   const featured = !activeCategory ? (posts.find((post) => post.featured) ?? posts[0] ?? null) : null;
   const rest = featured ? posts.filter((post) => post.id !== featured.id) : posts;
+  const structuredData = buildBlogListingStructuredData({ postCount: posts.length });
 
   return (
     <div className="bg-white text-neutral-900">
+      <JsonLd data={structuredData} />
       <PageHero
         crumbLabel="Blog"
         description="Clinical-minded guides on eye care, nutrition, and everyday supplement literacy — written for Bangladesh families who want trustworthy health information."

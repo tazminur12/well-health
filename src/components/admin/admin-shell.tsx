@@ -25,6 +25,7 @@ import {
   BarChart3,
   Megaphone,
   MessagesSquare,
+  Handshake,
   ChevronLeft,
   ChevronRight,
   CircleUserRound,
@@ -37,14 +38,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AdminNotificationBell } from "@/components/admin/admin-notification-bell";
+import { useAdminDistributorsUnreadCount } from "@/hooks/use-admin-distributors";
 import { useAdminMessagesUnreadCount } from "@/hooks/use-admin-messages";
 import type { AuthUser } from "@/lib/auth/session";
+import type { AdminPermissionKey } from "@/lib/roles/permissions";
 import { cn } from "@/lib/utils";
 
 type AdminNavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
+  permission: AdminPermissionKey;
   unreadCount?: number;
 };
 
@@ -59,49 +63,50 @@ const navGroups: AdminNavGroup[] = [
     id: "overview",
     label: "Overview",
     items: [
-      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-      { href: "/admin/messages", label: "Messages", icon: MessagesSquare },
-      { href: "/admin/notifications", label: "Notifications", icon: Bell },
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard" },
+      { href: "/admin/reports", label: "Reports", icon: BarChart3, permission: "reports" },
+      { href: "/admin/messages", label: "Messages", icon: MessagesSquare, permission: "messages" },
+      { href: "/admin/distributors", label: "Distributors", icon: Handshake, permission: "distributors" },
+      { href: "/admin/notifications", label: "Notifications", icon: Bell, permission: "dashboard" },
     ],
   },
   {
     id: "catalog",
     label: "Catalog",
     items: [
-      { href: "/admin/products", label: "Products", icon: Package },
-      { href: "/admin/categories", label: "Categories", icon: FolderTree },
-      { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
-      { href: "/admin/reviews", label: "Reviews", icon: MessageSquareQuote },
+      { href: "/admin/products", label: "Products", icon: Package, permission: "products" },
+      { href: "/admin/categories", label: "Categories", icon: FolderTree, permission: "categories" },
+      { href: "/admin/inventory", label: "Inventory", icon: Warehouse, permission: "inventory" },
+      { href: "/admin/reviews", label: "Reviews", icon: MessageSquareQuote, permission: "reviews" },
     ],
   },
   {
     id: "sales",
     label: "Sales",
     items: [
-      { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-      { href: "/admin/payments", label: "Payments", icon: Wallet },
-      { href: "/admin/customers", label: "Customers", icon: Users },
-      { href: "/admin/coupons", label: "Coupons", icon: Ticket },
-      { href: "/admin/shipping", label: "Shipping", icon: Truck },
+      { href: "/admin/orders", label: "Orders", icon: ShoppingBag, permission: "orders" },
+      { href: "/admin/payments", label: "Payments", icon: Wallet, permission: "payments" },
+      { href: "/admin/customers", label: "Customers", icon: Users, permission: "customers" },
+      { href: "/admin/coupons", label: "Coupons", icon: Ticket, permission: "coupons" },
+      { href: "/admin/shipping", label: "Shipping", icon: Truck, permission: "shipping" },
     ],
   },
   {
     id: "marketing",
     label: "Marketing",
     items: [
-      { href: "/admin/marketing", label: "Campaigns", icon: Megaphone },
-      { href: "/admin/blog", label: "Blog", icon: FileText },
-      { href: "/admin/content", label: "Content", icon: PanelsTopLeft },
+      { href: "/admin/marketing", label: "Campaigns", icon: Megaphone, permission: "marketing" },
+      { href: "/admin/blog", label: "Blog", icon: FileText, permission: "blog" },
+      { href: "/admin/content", label: "Content", icon: PanelsTopLeft, permission: "content" },
     ],
   },
   {
     id: "system",
     label: "System",
     items: [
-      { href: "/admin/roles", label: "Roles", icon: Shield },
-      { href: "/admin/settings", label: "Settings", icon: Settings },
-      { href: "/admin/api-health", label: "API Health", icon: Activity },
+      { href: "/admin/roles", label: "Roles", icon: Shield, permission: "roles" },
+      { href: "/admin/settings", label: "Settings", icon: Settings, permission: "settings" },
+      { href: "/admin/api-health", label: "API Health", icon: Activity, permission: "settings" },
     ],
   },
 ];
@@ -123,6 +128,7 @@ type SidebarProps = {
   collapsed: boolean;
   mobileOpen: boolean;
   user: AdminShellUser | null;
+  permissions: AdminPermissionKey[];
   onCloseMobile: () => void;
   onNavigate: () => void;
   onToggleCollapse: () => void;
@@ -185,9 +191,11 @@ function AdminAvatar({
 export function AdminShell({
   children,
   user = null,
+  permissions = [],
 }: {
   children: React.ReactNode;
   user?: AdminShellUser | null;
+  permissions?: AdminPermissionKey[];
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -207,6 +215,8 @@ export function AdminShell({
     if (pathname?.includes("/shipping")) return "Shipping";
     if (pathname?.includes("/reports")) return "Reports";
     if (pathname?.includes("/messages")) return "Messages";
+    if (pathname?.includes("/distributors/new")) return "Add Distributor";
+    if (pathname?.includes("/distributors")) return "Distributors";
     if (pathname?.includes("/marketing")) return "Marketing";
     if (pathname?.includes("/roles")) return "Roles";
     if (pathname?.includes("/blog")) return "Blog";
@@ -226,6 +236,7 @@ export function AdminShell({
         onCloseMobile={() => setMobileOpen(false)}
         onNavigate={() => setMobileOpen(false)}
         onToggleCollapse={() => setCollapsed((current) => !current)}
+        permissions={permissions}
         user={user}
       />
 
@@ -269,27 +280,45 @@ function AdminSidebar({
   collapsed,
   mobileOpen,
   user,
+  permissions,
   onCloseMobile,
   onNavigate,
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { data: messagesUnread = 0 } = useAdminMessagesUnreadCount();
+  const canViewMessages = permissions.includes("messages");
+  const canViewDistributors = permissions.includes("distributors");
+  const { data: messagesUnread = 0 } = useAdminMessagesUnreadCount(canViewMessages);
+  const { data: distributorsUnread = 0 } = useAdminDistributorsUnreadCount(canViewDistributors);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(navGroups.map((group) => [group.id, true]))
   );
 
   const groups = useMemo(
     () =>
-      navGroups.map((group) => ({
-        ...group,
-        items: group.items.map((item) =>
-          item.href === "/admin/messages"
-            ? { ...item, unreadCount: messagesUnread > 0 ? messagesUnread : undefined }
-            : item
-        ),
-      })),
-    [messagesUnread]
+      navGroups
+        .map((group) => ({
+          ...group,
+          items: group.items
+            .filter((item) => permissions.includes(item.permission))
+            .map((item) => {
+              if (item.href === "/admin/messages") {
+                return {
+                  ...item,
+                  unreadCount: messagesUnread > 0 ? messagesUnread : undefined,
+                };
+              }
+              if (item.href === "/admin/distributors") {
+                return {
+                  ...item,
+                  unreadCount: distributorsUnread > 0 ? distributorsUnread : undefined,
+                };
+              }
+              return item;
+            }),
+        }))
+        .filter((group) => group.items.length > 0),
+    [distributorsUnread, messagesUnread, permissions]
   );
 
   function toggleGroup(id: string) {

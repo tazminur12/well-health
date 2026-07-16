@@ -10,7 +10,8 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
+import { queueOrderEmails, sendOrderConfirmationEmail, sendOrderStatusEmail } from "@/lib/email/orders";
 import { resolveCoupon } from "@/lib/checkout/actions";
 import { mapOrderToAdmin } from "@/lib/orders/mapper";
 import {
@@ -111,7 +112,7 @@ const orderInclude = {
 
 export async function listOrdersAction(): Promise<OrderActionResult<AdminOrder[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const rows = await prisma.order.findMany({
       include: orderInclude,
       orderBy: { createdAt: "desc" },
@@ -124,7 +125,7 @@ export async function listOrdersAction(): Promise<OrderActionResult<AdminOrder[]
 
 export async function getOrderStatsAction(): Promise<OrderActionResult<AdminOrderStats>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const [grouped, revenueAgg] = await Promise.all([
       prisma.order.groupBy({
         by: ["status"],
@@ -161,7 +162,7 @@ export async function getOrderStatsAction(): Promise<OrderActionResult<AdminOrde
 
 export async function getOrderAction(id: string): Promise<OrderActionResult<AdminOrder>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const row = await prisma.order.findUnique({
       where: { id },
       include: orderInclude,
@@ -178,7 +179,7 @@ export async function updateOrderStatusAction(
   input: unknown
 ): Promise<OrderActionResult<AdminOrder>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const parsed = updateOrderStatusSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid status." };
@@ -235,6 +236,16 @@ export async function updateOrderStatusAction(
       });
     });
 
+    const customerStatusEmails: OrderStatus[] = [
+      OrderStatus.PROCESSING,
+      OrderStatus.SHIPPED,
+      OrderStatus.DELIVERED,
+      OrderStatus.CANCELLED,
+    ];
+    if (customerStatusEmails.includes(nextStatus)) {
+      queueOrderEmails([() => sendOrderStatusEmail(updated, nextStatus)]);
+    }
+
     revalidateOrders(id);
     return {
       data: mapOrderToAdmin(updated),
@@ -250,7 +261,7 @@ export async function updateOrderPaymentAction(
   input: unknown
 ): Promise<OrderActionResult<AdminOrder>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const parsed = updateOrderPaymentSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid payment status." };
@@ -294,7 +305,7 @@ export async function updateOrderNotesAction(
   input: unknown
 ): Promise<OrderActionResult<AdminOrder>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const parsed = updateOrderNotesSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid notes." };
@@ -317,7 +328,7 @@ export async function createAdminOrderAction(
   input: unknown
 ): Promise<OrderActionResult<AdminOrder>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("orders");
     const parsed = adminCreateOrderSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid order details." };
@@ -499,6 +510,8 @@ export async function createAdminOrderAction(
     } catch {
       // best-effort
     }
+
+    queueOrderEmails([() => sendOrderConfirmationEmail(order)]);
 
     revalidateOrders(order.id);
     revalidatePath("/shop");

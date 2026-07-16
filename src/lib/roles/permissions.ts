@@ -19,6 +19,12 @@ export const ADMIN_PERMISSIONS = [
     href: "/admin/messages",
   },
   {
+    key: "distributors",
+    label: "Distributors",
+    description: "Review distributor partnership applications",
+    href: "/admin/distributors",
+  },
+  {
     key: "products",
     label: "Products",
     description: "View, create, and edit catalog products",
@@ -119,7 +125,7 @@ export function defaultPermissionsForAccessLevel(
     return [...ALL_ADMIN_PERMISSION_KEYS];
   }
   // Support defaults
-  return ["dashboard", "orders", "customers", "messages"];
+  return ["dashboard", "orders", "customers", "messages", "distributors"];
 }
 
 export function normalizePermissions(values: string[] | null | undefined): AdminPermissionKey[] {

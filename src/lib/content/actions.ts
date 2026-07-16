@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   ABOUT_HOME_KEY,
   SITE_ASSETS_KEY,
@@ -64,7 +64,7 @@ function revalidateContent() {
 
 export async function listHeroSlidesAction(): Promise<ContentActionResult<AdminHeroSlide[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const rows = await prisma.heroSlide.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] });
     return { data: rows.map(mapHeroSlide) };
   } catch (error) {
@@ -76,7 +76,7 @@ export async function createHeroSlideAction(
   input: HeroSlideInput
 ): Promise<ContentActionResult<AdminHeroSlide>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = heroSlideInputSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid slide" };
 
@@ -96,7 +96,7 @@ export async function updateHeroSlideAction(
   input: HeroSlideInput
 ): Promise<ContentActionResult<AdminHeroSlide>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = heroSlideInputSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid slide" };
 
@@ -113,7 +113,7 @@ export async function updateHeroSlideAction(
 
 export async function deleteHeroSlideAction(id: string): Promise<ContentActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     await prisma.heroSlide.delete({ where: { id } });
     revalidateContent();
     return {};
@@ -126,7 +126,7 @@ export async function toggleHeroSlideActiveAction(
   id: string
 ): Promise<ContentActionResult<AdminHeroSlide>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const existing = await prisma.heroSlide.findUnique({ where: { id } });
     if (!existing) return { error: "Slide not found." };
     const slide = await prisma.heroSlide.update({
@@ -144,7 +144,7 @@ export async function reorderHeroSlidesAction(
   orderedIds: string[]
 ): Promise<ContentActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     await prisma.$transaction(
       orderedIds.map((id, index) =>
         prisma.heroSlide.update({ where: { id }, data: { sortOrder: index } })
@@ -161,7 +161,7 @@ export async function reorderHeroSlidesAction(
 
 export async function listTrustBadgesAction(): Promise<ContentActionResult<AdminTrustBadge[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const rows = await prisma.trustBadge.findMany({ orderBy: [{ sortOrder: "asc" }] });
     return { data: rows.map(mapTrustBadge) };
   } catch (error) {
@@ -173,7 +173,7 @@ export async function createTrustBadgeAction(
   input: TrustBadgeInput
 ): Promise<ContentActionResult<AdminTrustBadge>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = trustBadgeInputSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid badge" };
     const count = await prisma.trustBadge.count();
@@ -192,7 +192,7 @@ export async function updateTrustBadgeAction(
   input: TrustBadgeInput
 ): Promise<ContentActionResult<AdminTrustBadge>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = trustBadgeInputSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid badge" };
     const badge = await prisma.trustBadge.update({
@@ -208,7 +208,7 @@ export async function updateTrustBadgeAction(
 
 export async function deleteTrustBadgeAction(id: string): Promise<ContentActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     await prisma.trustBadge.delete({ where: { id } });
     revalidateContent();
     return {};
@@ -221,7 +221,7 @@ export async function deleteTrustBadgeAction(id: string): Promise<ContentActionR
 
 export async function listFaqItemsAction(): Promise<ContentActionResult<AdminFaqItem[]>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const rows = await prisma.faqItem.findMany({ orderBy: [{ sortOrder: "asc" }] });
     return { data: rows.map(mapFaqItem) };
   } catch (error) {
@@ -233,7 +233,7 @@ export async function createFaqItemAction(
   input: FaqItemInput
 ): Promise<ContentActionResult<AdminFaqItem>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = faqItemInputSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid FAQ" };
     const count = await prisma.faqItem.count();
@@ -252,7 +252,7 @@ export async function updateFaqItemAction(
   input: FaqItemInput
 ): Promise<ContentActionResult<AdminFaqItem>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = faqItemInputSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid FAQ" };
     const item = await prisma.faqItem.update({
@@ -268,7 +268,7 @@ export async function updateFaqItemAction(
 
 export async function deleteFaqItemAction(id: string): Promise<ContentActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     await prisma.faqItem.delete({ where: { id } });
     revalidateContent();
     return {};
@@ -281,7 +281,7 @@ export async function toggleFaqItemActiveAction(
   id: string
 ): Promise<ContentActionResult<AdminFaqItem>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const existing = await prisma.faqItem.findUnique({ where: { id } });
     if (!existing) return { error: "FAQ not found." };
     const item = await prisma.faqItem.update({
@@ -299,7 +299,7 @@ export async function toggleFaqItemActiveAction(
 
 export async function getAboutHomeAction(): Promise<ContentActionResult<AboutHomeContent>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const row = await prisma.siteSetting.findUnique({ where: { key: ABOUT_HOME_KEY } });
     if (!row) return { data: defaultAboutHome };
     const parsed = aboutHomeSchema.safeParse(row.value);
@@ -313,7 +313,7 @@ export async function updateAboutHomeAction(
   input: AboutHomeContent
 ): Promise<ContentActionResult<AboutHomeContent>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = aboutHomeSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid about content" };
 
@@ -331,7 +331,7 @@ export async function updateAboutHomeAction(
 
 export async function getSiteAssetsAction(): Promise<ContentActionResult<SiteAssetsContent>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const row = await prisma.siteSetting.findUnique({ where: { key: SITE_ASSETS_KEY } });
     if (!row) return { data: defaultSiteAssets };
     const parsed = siteAssetsSchema.safeParse(row.value);
@@ -345,7 +345,7 @@ export async function updateSiteAssetsAction(
   input: SiteAssetsContent
 ): Promise<ContentActionResult<SiteAssetsContent>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("content");
     const parsed = siteAssetsSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid assets" };
 

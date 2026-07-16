@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { mapBlogPostToAdmin, type AdminBlogPost } from "@/lib/blog/mapper";
 import { deleteCloudinaryImage, uploadImageToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +21,7 @@ export async function saveBlogFeaturedImageAction(
   formData: FormData
 ): Promise<BlogUploadResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
 
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
     if (!post) return { error: "Post not found." };
@@ -69,7 +69,7 @@ export async function deleteBlogFeaturedImageAction(
   postId: string
 ): Promise<BlogUploadResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("blog");
 
     const post = await prisma.blogPost.findUnique({ where: { id: postId } });
     if (!post) return { error: "Post not found." };

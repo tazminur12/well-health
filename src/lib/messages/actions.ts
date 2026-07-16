@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { AdminAuthError, requireAdmin } from "@/lib/admin/require-admin";
+import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import {
   submitContactMessageSchema,
   updateContactMessageSchema,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/messages/schemas";
 import { createAdminNotification } from "@/lib/notifications/actions";
 import { prisma } from "@/lib/prisma";
+import { rateLimitForRequest } from "@/lib/rate-limit/server";
 
 export type MessageActionResult<T = undefined> = {
   error?: string;
@@ -82,6 +83,9 @@ export async function submitContactMessageAction(
       return { error: parsed.error.issues[0]?.message ?? "Invalid message." };
     }
 
+    const rateLimited = await rateLimitForRequest("form:contact");
+    if (rateLimited) return rateLimited;
+
     const row = await prisma.contactMessage.create({
       data: {
         name: parsed.data.name,
@@ -117,7 +121,7 @@ export async function listContactMessagesAction(input?: {
   MessageActionResult<{ items: AdminContactMessage[]; unreadCount: number }>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("messages");
     const filter = input?.filter ?? "all";
 
     const where =
@@ -150,7 +154,7 @@ export async function getContactUnreadCountAction(): Promise<
   MessageActionResult<{ unreadCount: number }>
 > {
   try {
-    await requireAdmin();
+    await requireAdminPermission("messages");
     const unreadCount = await prisma.contactMessage.count({
       where: { status: "NEW" },
     });
@@ -165,7 +169,7 @@ export async function updateContactMessageAction(
   input: UpdateContactMessageInput
 ): Promise<MessageActionResult<AdminContactMessage>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("messages");
     const parsed = updateContactMessageSchema.safeParse(input);
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid update." };
@@ -194,7 +198,7 @@ export async function markContactMessageReadAction(
   id: string
 ): Promise<MessageActionResult<AdminContactMessage>> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("messages");
     const existing = await prisma.contactMessage.findUnique({ where: { id } });
     if (!existing) return { error: "Message not found." };
     if (existing.status !== "NEW") return { data: toDto(existing) };
@@ -212,7 +216,7 @@ export async function markContactMessageReadAction(
 
 export async function markAllContactMessagesReadAction(): Promise<MessageActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("messages");
     await prisma.contactMessage.updateMany({
       where: { status: "NEW" },
       data: { status: "READ" },
@@ -228,7 +232,7 @@ export async function deleteContactMessageAction(
   id: string
 ): Promise<MessageActionResult> {
   try {
-    await requireAdmin();
+    await requireAdminPermission("messages");
     await prisma.contactMessage.delete({ where: { id } });
     revalidateMessages();
     return { success: "Message deleted." };

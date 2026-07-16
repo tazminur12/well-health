@@ -11,27 +11,33 @@ import {
 import { Suspense, useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
-import { getOrderByNumberAction } from "@/lib/checkout/actions";
+import { getOrderByAccessTokenAction } from "@/lib/checkout/actions";
 import { formatPrice } from "@/lib/format-price";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const orderNumber = searchParams.get("order") ?? "";
-  const [loading, setLoading] = useState(Boolean(orderNumber));
+  const token = searchParams.get("token") ?? "";
+  const [loading, setLoading] = useState(Boolean(token));
+  const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<
-    NonNullable<Awaited<ReturnType<typeof getOrderByNumberAction>>["data"]> | undefined
+    NonNullable<Awaited<ReturnType<typeof getOrderByAccessTokenAction>>["data"]> | undefined
   >(undefined);
 
   useEffect(() => {
-    if (!orderNumber) {
+    if (!token) {
       setLoading(false);
       return;
     }
-    void getOrderByNumberAction(orderNumber).then((result) => {
-      setOrder(result.data);
+
+    void getOrderByAccessTokenAction(token).then((result) => {
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setOrder(result.data);
+      }
       setLoading(false);
     });
-  }, [orderNumber]);
+  }, [token]);
 
   if (loading) {
     return (
@@ -57,11 +63,13 @@ function SuccessContent() {
           <p className="mt-2 text-sm text-neutral-500">
             {order
               ? "Your order is confirmed. A summary is below."
-              : "Your order was placed successfully."}
+              : error
+                ? error
+                : "Your order was placed successfully."}
           </p>
-          {orderNumber ? (
+          {order ? (
             <p className="mt-4 inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand-green-800 ring-1 ring-brand-green-100">
-              Order {orderNumber}
+              Order {order.orderNumber}
             </p>
           ) : null}
         </div>
@@ -155,6 +163,13 @@ function SuccessContent() {
                 you before arrival.
               </p>
             )}
+          </div>
+        ) : error ? (
+          <div className="px-6 py-6 text-center sm:px-10">
+            <p className="text-sm text-neutral-600">
+              Sign in to <strong>My orders</strong> if you have an account, or check your confirmation
+              email for a valid link.
+            </p>
           </div>
         ) : null}
 

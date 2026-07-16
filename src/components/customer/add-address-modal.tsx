@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
-  bdDistricts,
+  bdDivisions,
+  getBdDistricts,
+  getBdDivisionForDistrict,
+  getBdThanas,
   type CustomerAddress,
 } from "@/components/customer/address-card";
 
@@ -20,6 +23,7 @@ type AddAddressModalProps = {
 const emptyForm = {
   fullName: "",
   phone: "",
+  division: "",
   district: "",
   area: "",
   details: "",
@@ -47,6 +51,7 @@ export function AddAddressModal({
       setForm({
         fullName: address.fullName,
         phone: address.phone,
+        division: getBdDivisionForDistrict(address.district),
         district: address.district,
         area: address.area,
         details: address.details,
@@ -73,9 +78,10 @@ export function AddAddressModal({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (isSaving) return;
+    const { division: _division, ...addressFields } = form;
     await onSave({
       id: address?.id,
-      ...form,
+      ...addressFields,
     });
   }
 
@@ -151,24 +157,60 @@ export function AddAddressModal({
           </div>
 
           <div className="space-y-1.5">
+            <label className="text-sm font-medium text-neutral-700" htmlFor="addr-division">
+              Division
+            </label>
+            <select
+              className={fieldClass}
+              id="addr-division"
+              onChange={(event) =>
+                setForm((f) => ({
+                  ...f,
+                  division: event.target.value,
+                  district: "",
+                  area: "",
+                }))
+              }
+              required
+              value={form.division}
+            >
+              <option disabled value="">
+                Select division
+              </option>
+              {bdDivisions.map((division) => (
+                <option key={division} value={division}>
+                  {division}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-sm font-medium text-neutral-700" htmlFor="addr-district">
               District
             </label>
             <select
               className={fieldClass}
+              disabled={!form.division}
               id="addr-district"
-              onChange={(event) => setForm((f) => ({ ...f, district: event.target.value }))}
+              onChange={(event) =>
+                setForm((f) => ({ ...f, district: event.target.value, area: "" }))
+              }
               required
               value={form.district}
             >
               <option disabled value="">
-                Select district
+                {form.division ? "Select district" : "Select division first"}
               </option>
-              {bdDistricts.map((district) => (
+              {getBdDistricts(form.division).map((district) => (
                 <option key={district} value={district}>
                   {district}
                 </option>
               ))}
+              {form.district &&
+              !getBdDistricts(form.division).includes(form.district) ? (
+                <option value={form.district}>{form.district}</option>
+              ) : null}
             </select>
           </div>
 
@@ -176,13 +218,26 @@ export function AddAddressModal({
             <label className="text-sm font-medium text-neutral-700" htmlFor="addr-area">
               Area / Thana
             </label>
-            <input
+            <select
               className={fieldClass}
+              disabled={!form.district}
               id="addr-area"
               onChange={(event) => setForm((f) => ({ ...f, area: event.target.value }))}
               required
               value={form.area}
-            />
+            >
+              <option disabled value="">
+                {form.district ? "Select thana" : "Select district first"}
+              </option>
+              {getBdThanas(form.district).map((thana) => (
+                <option key={thana} value={thana}>
+                  {thana}
+                </option>
+              ))}
+              {form.area && !getBdThanas(form.district).includes(form.area) ? (
+                <option value={form.area}>{form.area}</option>
+              ) : null}
+            </select>
           </div>
 
           <div className="space-y-1.5">

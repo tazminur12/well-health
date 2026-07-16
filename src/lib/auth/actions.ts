@@ -14,6 +14,7 @@ import {
   type ResetPasswordInput,
 } from "@/lib/auth/schemas";
 import { syncUserProfile } from "@/lib/auth/session";
+import { rateLimitForRequest } from "@/lib/rate-limit/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthActionResult = {
@@ -40,6 +41,9 @@ export async function loginAction(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid login details" };
   }
+
+  const rateLimited = await rateLimitForRequest("auth:login");
+  if (rateLimited) return rateLimited;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -78,6 +82,9 @@ export async function registerAction(input: RegisterInput): Promise<AuthActionRe
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid registration details" };
   }
+
+  const rateLimited = await rateLimitForRequest("auth:register");
+  if (rateLimited) return rateLimited;
 
   const email = parsed.data.email.trim().toLowerCase();
   const phone = parsed.data.phone.trim();
@@ -136,6 +143,9 @@ export async function forgotPasswordAction(
   }
 
   const email = parsed.data.email.trim().toLowerCase();
+  const rateLimited = await rateLimitForRequest("auth:forgot-password", email);
+  if (rateLimited) return rateLimited;
+
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getAppUrl()}/auth/callback?next=/reset-password`,
@@ -158,6 +168,9 @@ export async function resetPasswordAction(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Please check your password" };
   }
+
+  const rateLimited = await rateLimitForRequest("auth:reset-password");
+  if (rateLimited) return rateLimited;
 
   const supabase = await createClient();
   const {
