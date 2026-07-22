@@ -7,45 +7,28 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
 } from "@/lib/orders/schemas";
+import {
+  PDF_BRAND,
+  PDF_MARGIN,
+  applyFootersToAllPages,
+  drawBrandHeaderBar,
+  drawOrderCodeMark,
+  formatPdfDateTime,
+  moneyBdt,
+  saveOrPrintPdf,
+  storeContactLines,
+} from "@/lib/orders/pdf-shared";
 import type { StoreSettings } from "@/lib/settings/schemas";
 import { defaultStoreSettings } from "@/lib/settings/schemas";
-
-const BRAND = {
-  dark: [11, 77, 58] as [number, number, number],
-  green: [22, 135, 93] as [number, number, number],
-  gold: [201, 162, 75] as [number, number, number],
-  muted: [107, 114, 128] as [number, number, number],
-  soft: [232, 245, 238] as [number, number, number],
-  line: [229, 231, 235] as [number, number, number],
-  text: [26, 29, 31] as [number, number, number],
-};
-
-function money(value: number) {
-  return `Tk ${value.toLocaleString("en-BD", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 type InvoicePdfOptions = {
   order: AdminOrder;
   store?: StoreSettings;
-  /** open print dialog after generate */
   openPrint?: boolean;
 };
 
 /**
- * Builds a professional A4 order invoice PDF and downloads (or opens print).
+ * Professional A4 tax-style order invoice (download or print).
  */
 export function downloadOrderInvoicePdf({
   order,
@@ -54,315 +37,343 @@ export function downloadOrderInvoicePdf({
 }: InvoicePdfOptions) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
-  const margin = 16;
-  const contentW = pageW - margin * 2;
+  const contentW = pageW - PDF_MARGIN * 2;
   let y = 16;
 
-  // Top brand bar
-  doc.setFillColor(...BRAND.dark);
-  doc.rect(0, 0, pageW, 8, "F");
-  doc.setFillColor(...BRAND.gold);
-  doc.rect(0, 8, pageW, 1.2, "F");
-
-  y = 18;
+  drawBrandHeaderBar(doc);
 
   // Store identity
-  doc.setTextColor(...BRAND.dark);
+  doc.setTextColor(...PDF_BRAND.dark);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(store.storeName, margin, y);
+  doc.setFontSize(15);
+  doc.text(store.storeName, PDF_MARGIN, y);
 
-  y += 6;
+  y += 5.5;
   if (store.tagline) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(...BRAND.muted);
-    doc.text(store.tagline, margin, y);
-    y += 5;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...PDF_BRAND.muted);
+    doc.text(store.tagline, PDF_MARGIN, y);
+    y += 4.5;
   }
 
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.muted);
-  const storeLines = [
-    [store.addressLine1, store.addressLine2].filter(Boolean).join(", "),
-    `${store.city}, ${store.country}`,
-    `${store.supportPhone}  ·  ${store.supportEmail}`,
-  ].filter(Boolean);
-  for (const line of storeLines) {
-    doc.text(line, margin, y);
-    y += 4;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_BRAND.muted);
+  for (const line of storeContactLines(store)) {
+    doc.text(line, PDF_MARGIN, y, { maxWidth: contentW * 0.55 });
+    y += 3.6;
   }
 
-  // Invoice badge (right)
-  const badgeX = pageW - margin;
+  // Invoice title + meta (right)
+  const metaX = pageW - PDF_MARGIN;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.setTextColor(...BRAND.green);
-  doc.text("INVOICE", badgeX, 22, { align: "right" });
+  doc.setFontSize(20);
+  doc.setTextColor(...PDF_BRAND.green);
+  doc.text("INVOICE", metaX, 18, { align: "right" });
 
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND.text);
-  doc.text(order.orderNumber, badgeX, 28, { align: "right" });
+  doc.setFillColor(...PDF_BRAND.soft);
+  doc.roundedRect(pageW - PDF_MARGIN - 58, 22, 58, 28, 2, 2, "F");
 
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...PDF_BRAND.muted);
+  doc.text("INVOICE NO.", pageW - PDF_MARGIN - 54, 27);
+  doc.setFontSize(9);
+  doc.setTextColor(...PDF_BRAND.text);
+  doc.text(order.orderNumber, pageW - PDF_MARGIN - 54, 32);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...PDF_BRAND.muted);
+  doc.text("ISSUED", pageW - PDF_MARGIN - 54, 38);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(...BRAND.muted);
-  doc.text(`Issued ${formatDate(order.createdAt)}`, badgeX, 33, { align: "right" });
-  doc.text(
-    `Status: ${ORDER_STATUS_LABELS[order.status]}`,
-    badgeX,
-    37.5,
-    { align: "right" }
-  );
-
-  y = Math.max(y, 44) + 4;
-
-  // Divider
-  doc.setDrawColor(...BRAND.line);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageW - margin, y);
-  y += 8;
-
-  // Bill to / Ship to boxes
-  const colW = (contentW - 6) / 2;
-  const boxH = 36;
-
-  doc.setFillColor(...BRAND.soft);
-  doc.roundedRect(margin, y, colW, boxH, 2, 2, "F");
-  doc.roundedRect(margin + colW + 6, y, colW, boxH, 2, 2, "F");
+  doc.setTextColor(...PDF_BRAND.text);
+  doc.text(formatPdfDateTime(order.createdAt), pageW - PDF_MARGIN - 54, 42.5);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.green);
-  doc.text("BILL TO", margin + 4, y + 6);
-  doc.text("SHIP TO", margin + colW + 10, y + 6);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND.text);
-  doc.text(order.customerName, margin + 4, y + 12, { maxWidth: colW - 8 });
-  doc.text(order.shippingFullName, margin + colW + 10, y + 12, {
-    maxWidth: colW - 8,
-  });
-
+  doc.setFontSize(7);
+  doc.setTextColor(...PDF_BRAND.muted);
+  doc.text("STATUS", pageW - PDF_MARGIN - 54, 47.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(...BRAND.muted);
+  doc.setTextColor(...PDF_BRAND.green);
+  doc.text(ORDER_STATUS_LABELS[order.status], pageW - PDF_MARGIN - 54, 51.5);
+
+  y = Math.max(y, 54) + 4;
+
+  doc.setDrawColor(...PDF_BRAND.line);
+  doc.setLineWidth(0.35);
+  doc.line(PDF_MARGIN, y, pageW - PDF_MARGIN, y);
+  y += 7;
+
+  // Bill / Ship boxes
+  const colW = (contentW - 5) / 2;
+  const boxTop = y;
+  let billH = 14;
+  let shipH = 14;
 
   const billLines = [order.email, order.phone].filter(Boolean);
-  let billY = y + 17;
-  for (const line of billLines) {
-    doc.text(line, margin + 4, billY, { maxWidth: colW - 8 });
-    billY += 4;
-  }
-
   const shipLines = [
     order.shippingPhone,
     order.shippingDetails,
     `${order.shippingArea}, ${order.shippingDistrict}`,
     order.shippingZoneName ? `Zone: ${order.shippingZoneName}` : "",
   ].filter(Boolean);
-  let shipY = y + 17;
-  for (const line of shipLines) {
-    doc.text(String(line), margin + colW + 10, shipY, { maxWidth: colW - 8 });
-    shipY += 4;
-  }
 
-  y += boxH + 8;
+  billH = 14 + billLines.length * 4 + 2;
+  shipH = 14 + shipLines.length * 4 + 2;
+  const boxH = Math.max(billH, shipH, 32);
 
-  // Meta row: payment
-  doc.setFillColor(248, 250, 249);
-  doc.roundedRect(margin, y, contentW, 12, 2, 2, "F");
+  doc.setFillColor(...PDF_BRAND.paper);
+  doc.roundedRect(PDF_MARGIN, boxTop, colW, boxH, 2, 2, "F");
+  doc.roundedRect(PDF_MARGIN + colW + 5, boxTop, colW, boxH, 2, 2, "F");
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...BRAND.muted);
-  doc.text("PAYMENT METHOD", margin + 4, y + 5);
-  doc.text("PAYMENT STATUS", margin + contentW / 2, y + 5);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...BRAND.text);
-  doc.text(PAYMENT_METHOD_LABELS[order.paymentMethod], margin + 4, y + 9.5);
-  doc.text(PAYMENT_STATUS_LABELS[order.paymentStatus], margin + contentW / 2, y + 9.5);
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_BRAND.green);
+  doc.text("BILL TO", PDF_MARGIN + 3.5, boxTop + 5.5);
+  doc.text("SHIP TO", PDF_MARGIN + colW + 8.5, boxTop + 5.5);
 
-  if (order.paymentMethod === "COD") {
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...BRAND.gold);
-    doc.text("Collect cash on delivery", pageW - margin - 4, y + 9.5, {
-      align: "right",
-    });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...PDF_BRAND.text);
+  doc.text(order.customerName, PDF_MARGIN + 3.5, boxTop + 11.5, {
+    maxWidth: colW - 7,
+  });
+  doc.text(order.shippingFullName, PDF_MARGIN + colW + 8.5, boxTop + 11.5, {
+    maxWidth: colW - 7,
+  });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...PDF_BRAND.muted);
+  let by = boxTop + 17;
+  for (const line of billLines) {
+    doc.text(line, PDF_MARGIN + 3.5, by, { maxWidth: colW - 7 });
+    by += 4;
   }
+  let sy = boxTop + 17;
+  for (const line of shipLines) {
+    doc.text(String(line), PDF_MARGIN + colW + 8.5, sy, { maxWidth: colW - 7 });
+    sy += 4;
+  }
+
+  y = boxTop + boxH + 6;
+
+  // Payment strip
+  doc.setFillColor(...PDF_BRAND.soft);
+  doc.roundedRect(PDF_MARGIN, y, contentW, 14, 2, 2, "F");
+
+  const third = contentW / 3;
+  const paymentCols = [
+    { label: "PAYMENT METHOD", value: PAYMENT_METHOD_LABELS[order.paymentMethod] },
+    { label: "PAYMENT STATUS", value: PAYMENT_STATUS_LABELS[order.paymentStatus] },
+    {
+      label: "AMOUNT DUE",
+      value:
+        order.paymentStatus === "PAID" ? "Paid in full" : moneyBdt(order.total),
+    },
+  ];
+
+  paymentCols.forEach((col, index) => {
+    const cx = PDF_MARGIN + third * index + 3.5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...PDF_BRAND.muted);
+    doc.text(col.label, cx, y + 5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(
+      ...(index === 2 && order.paymentStatus !== "PAID"
+        ? PDF_BRAND.dark
+        : PDF_BRAND.text)
+    );
+    doc.text(col.value, cx, y + 10.5);
+  });
 
   y += 18;
 
+  // Paid stamp
+  if (order.paymentStatus === "PAID") {
+    doc.setDrawColor(...PDF_BRAND.green);
+    doc.setLineWidth(0.7);
+    doc.setTextColor(...PDF_BRAND.green);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    const stampX = pageW - PDF_MARGIN - 28;
+    doc.roundedRect(stampX - 4, y - 2, 32, 10, 1.5, 1.5, "S");
+    doc.text("PAID", stampX + 12, y + 5, { align: "center" });
+  }
+
   // Line items
   autoTable(doc, {
-    startY: y,
-    margin: { left: margin, right: margin },
-    head: [["#", "Product", "Qty", "Unit price", "Line total"]],
+    startY: y + (order.paymentStatus === "PAID" ? 10 : 0),
+    margin: { left: PDF_MARGIN, right: PDF_MARGIN, bottom: 22 },
+    head: [["#", "Item", "Qty", "Unit price", "Amount"]],
     body: order.items.map((item, index) => [
       String(index + 1),
-      item.productName,
+      item.productSku
+        ? `${item.productName}\nSKU: ${item.productSku}`
+        : item.productName,
       String(item.quantity),
-      money(item.unitPrice),
-      money(item.lineTotal),
+      moneyBdt(item.unitPrice),
+      moneyBdt(item.lineTotal),
     ]),
     styles: {
       font: "helvetica",
       fontSize: 8.5,
-      cellPadding: 2.4,
-      textColor: BRAND.text,
-      lineColor: BRAND.line,
-      lineWidth: 0.2,
+      cellPadding: { top: 2.6, bottom: 2.6, left: 2.2, right: 2.2 },
+      textColor: PDF_BRAND.text,
+      lineColor: PDF_BRAND.line,
+      lineWidth: 0.18,
+      valign: "middle",
     },
     headStyles: {
-      fillColor: BRAND.dark,
-      textColor: [255, 255, 255],
+      fillColor: PDF_BRAND.dark,
+      textColor: PDF_BRAND.white,
       fontStyle: "bold",
       fontSize: 8,
     },
     alternateRowStyles: {
-      fillColor: [248, 250, 249],
+      fillColor: PDF_BRAND.paper,
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: "center" },
+      0: { cellWidth: 9, halign: "center" },
       1: { cellWidth: "auto" },
-      2: { cellWidth: 16, halign: "center" },
+      2: { cellWidth: 14, halign: "center" },
       3: { cellWidth: 32, halign: "right" },
-      4: { cellWidth: 34, halign: "right" },
+      4: { cellWidth: 34, halign: "right", fontStyle: "bold" },
     },
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  y = ((doc as any).lastAutoTable?.finalY as number) + 8;
+  y = ((doc as any).lastAutoTable?.finalY as number) + 7;
 
-  // Totals panel (right)
-  const totalsW = 72;
-  const totalsX = pageW - margin - totalsW;
-  const rows: Array<{ label: string; value: string; bold?: boolean; green?: boolean }> = [
-    { label: "Subtotal", value: money(order.subtotal) },
-  ];
+  // Totals
+  const totalsW = 74;
+  const totalsX = pageW - PDF_MARGIN - totalsW;
+  const rows: Array<{
+    label: string;
+    value: string;
+    bold?: boolean;
+    accent?: boolean;
+  }> = [{ label: "Subtotal", value: moneyBdt(order.subtotal) }];
+
   if (order.discount > 0) {
     rows.push({
       label: order.couponCode ? `Discount (${order.couponCode})` : "Discount",
-      value: `− ${money(order.discount)}`,
-      green: true,
+      value: `− ${moneyBdt(order.discount)}`,
+      accent: true,
     });
   }
   rows.push({
     label: "Shipping",
-    value: order.shippingFee === 0 ? "Free" : money(order.shippingFee),
+    value: order.shippingFee === 0 ? "Free" : moneyBdt(order.shippingFee),
   });
-  rows.push({ label: "Total due", value: money(order.total), bold: true });
+  rows.push({ label: "Total", value: moneyBdt(order.total), bold: true });
+
+  // Order code mark on left of totals
+  drawOrderCodeMark(doc, order.orderNumber, PDF_MARGIN, y, 52);
 
   let ty = y;
   for (const row of rows) {
     if (row.bold) {
-      doc.setFillColor(...BRAND.soft);
-      doc.roundedRect(totalsX - 2, ty - 4.5, totalsW + 2, 9, 1.5, 1.5, "F");
+      doc.setFillColor(...PDF_BRAND.soft);
+      doc.roundedRect(totalsX - 2, ty - 4.2, totalsW + 2, 9.5, 1.5, 1.5, "F");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      doc.setTextColor(BRAND.dark[0], BRAND.dark[1], BRAND.dark[2]);
+      doc.setTextColor(...PDF_BRAND.dark);
     } else {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      const labelColor = row.green ? BRAND.green : BRAND.muted;
-      doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+      doc.setTextColor(...(row.accent ? PDF_BRAND.green : PDF_BRAND.muted));
     }
     doc.text(row.label, totalsX, ty);
-    const valueColor = row.green ? BRAND.green : row.bold ? BRAND.dark : BRAND.text;
-    doc.setTextColor(valueColor[0], valueColor[1], valueColor[2]);
-    doc.text(row.value, pageW - margin, ty, { align: "right" });
-    ty += row.bold ? 8 : 6;
+    doc.setTextColor(
+      ...(row.accent ? PDF_BRAND.green : row.bold ? PDF_BRAND.dark : PDF_BRAND.text)
+    );
+    doc.text(row.value, pageW - PDF_MARGIN, ty, { align: "right" });
+    ty += row.bold ? 9 : 6;
   }
 
-  y = Math.max(y + rows.length * 6 + 6, ty + 4);
+  y = Math.max(y + 18, ty + 4);
 
-  // Notes
   if (order.notes?.trim()) {
+    ensureSpace(doc, y, 28);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).__pdfY ?? y;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...BRAND.green);
-    doc.text("ORDER NOTES", margin, y);
-    y += 5;
+    doc.setFontSize(7.5);
+    doc.setTextColor(...PDF_BRAND.green);
+    doc.text("ORDER NOTES", PDF_MARGIN, y);
+    y += 4.5;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...BRAND.muted);
+    doc.setTextColor(...PDF_BRAND.muted);
     const noteLines = doc.splitTextToSize(order.notes.trim(), contentW);
-    doc.text(noteLines, margin, y);
-    y += noteLines.length * 4 + 6;
+    doc.text(noteLines, PDF_MARGIN, y);
+    y += noteLines.length * 3.8 + 5;
   }
 
-  // COD cash box
   if (order.paymentMethod === "COD" && order.paymentStatus !== "PAID") {
-    doc.setDrawColor(...BRAND.gold);
-    doc.setLineWidth(0.6);
-    doc.setFillColor(255, 251, 235);
-    doc.roundedRect(margin, y, contentW, 16, 2, 2, "FD");
+    ensureSpace(doc, y, 22);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).__pdfY ?? y;
+    doc.setDrawColor(...PDF_BRAND.gold);
+    doc.setLineWidth(0.55);
+    doc.setFillColor(...PDF_BRAND.amberBg);
+    doc.roundedRect(PDF_MARGIN, y, contentW, 16, 2, 2, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.setTextColor(...BRAND.dark);
-    doc.text("CASH ON DELIVERY", margin + 4, y + 6);
+    doc.setTextColor(...PDF_BRAND.dark);
+    doc.text("CASH ON DELIVERY", PDF_MARGIN + 4, y + 6);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...BRAND.muted);
+    doc.setTextColor(...PDF_BRAND.amber);
     doc.text(
-      `Please collect ${money(order.total)} from the customer upon delivery.`,
-      margin + 4,
+      `Please collect ${moneyBdt(order.total)} from the customer upon delivery.`,
+      PDF_MARGIN + 4,
       y + 12
     );
-    y += 22;
+    y += 20;
   }
 
-  // Footer
-  const footerY = Math.max(y + 10, 270);
-  doc.setDrawColor(...BRAND.line);
-  doc.setLineWidth(0.3);
-  doc.line(margin, footerY, pageW - margin, footerY);
+  ensureSpace(doc, y, 20);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  y = (doc as any).__pdfY ?? y;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(...BRAND.dark);
-  doc.text("Thank you for choosing Well Health.", pageW / 2, footerY + 7, {
+  doc.setTextColor(...PDF_BRAND.dark);
+  doc.text(`Thank you for choosing ${store.storeName}.`, pageW / 2, y, {
     align: "center",
   });
-
+  y += 5;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...BRAND.muted);
+  doc.setFontSize(7);
+  doc.setTextColor(...PDF_BRAND.muted);
   doc.text(
-    "This is a computer-generated invoice. For support, contact us using the details above.",
+    "This is a computer-generated invoice and does not require a signature.",
     pageW / 2,
-    footerY + 12,
+    y,
     { align: "center" }
   );
 
-  // Bottom brand strip
-  doc.setFillColor(...BRAND.dark);
-  doc.rect(0, 289, pageW, 8, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(7);
-  doc.text(store.storeName, pageW / 2, 294, { align: "center" });
+  applyFootersToAllPages(doc, store.storeName);
+  saveOrPrintPdf(doc, `${order.orderNumber}-invoice.pdf`, openPrint);
+}
 
-  const filename = `${order.orderNumber}.pdf`;
-
-  if (openPrint) {
-    const blobUrl = doc.output("bloburl");
-    const win = window.open(blobUrl);
-    if (win) {
-      // Give the browser a moment to load the PDF before print
-      setTimeout(() => {
-        try {
-          win.focus();
-          win.print();
-        } catch {
-          // user can print from viewer
-        }
-      }, 400);
-    } else {
-      doc.save(filename);
-    }
+function ensureSpace(doc: jsPDF, y: number, needed: number) {
+  const pageH = doc.internal.pageSize.getHeight();
+  if (y + needed > pageH - 20) {
+    doc.addPage();
+    drawBrandHeaderBar(doc);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (doc as any).__pdfY = 16;
     return;
   }
-
-  doc.save(filename);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (doc as any).__pdfY = y;
 }

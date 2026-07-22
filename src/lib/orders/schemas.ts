@@ -62,6 +62,7 @@ export type AdminOrderItem = {
   productId: string | null;
   productName: string;
   productSlug: string;
+  productSku: string | null;
   unitPrice: number;
   quantity: number;
   lineTotal: number;

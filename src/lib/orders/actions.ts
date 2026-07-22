@@ -107,7 +107,12 @@ function revalidateOrders(orderId?: string) {
 }
 
 const orderInclude = {
-  items: { orderBy: { productName: "asc" as const } },
+  items: {
+    orderBy: { productName: "asc" as const },
+    include: {
+      product: { select: { sku: true } },
+    },
+  },
 } satisfies Prisma.OrderInclude;
 
 export async function listOrdersAction(): Promise<OrderActionResult<AdminOrder[]>> {

@@ -22,6 +22,7 @@ import { useAdminOrder, useOrderMutations } from "@/hooks/use-admin-orders";
 import { confirmAdminAction, showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
 import { formatPrice } from "@/lib/format-price";
 import { downloadOrderInvoicePdf } from "@/lib/orders/invoice-pdf";
+import { downloadOrderPackingSlipPdf } from "@/lib/orders/packing-slip-pdf";
 import {
   ORDER_STATUSES,
   ORDER_STATUS_LABELS,
@@ -32,7 +33,7 @@ import {
   type PaymentStatusValue,
 } from "@/lib/orders/schemas";
 import { getStoreSettingsAction } from "@/lib/settings/actions";
-import { defaultStoreSettings } from "@/lib/settings/schemas";
+import { defaultStoreSettings, type StoreSettings } from "@/lib/settings/schemas";
 import { cn } from "@/lib/utils";
 
 /** Online / prepaid flow */
@@ -118,6 +119,7 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
   const { data: order, isLoading, isError, error, refetch } = useAdminOrder(orderId);
   const { updateStatus, updatePayment, updateNotes } = useOrderMutations();
   const [isPdfPending, startPdf] = useTransition();
+  const [pdfKind, setPdfKind] = useState<"invoice" | "packing" | null>(null);
 
   const [status, setStatus] = useState<OrderStatusValue>("PENDING");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusValue>("UNPAID");
@@ -130,25 +132,63 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
     setNotes(order.notes ?? "");
   }, [order]);
 
+  async function loadStoreSettings(): Promise<StoreSettings> {
+    const settingsResult = await getStoreSettingsAction();
+    return settingsResult.data ?? defaultStoreSettings;
+  }
+
   function handleInvoicePdf(mode: "download" | "print") {
     if (!order) return;
+    setPdfKind("invoice");
     startPdf(async () => {
       try {
-        const settingsResult = await getStoreSettingsAction();
-        const store = settingsResult.data ?? defaultStoreSettings;
+        const store = await loadStoreSettings();
         downloadOrderInvoicePdf({
           order,
           store,
           openPrint: mode === "print",
         });
         if (mode === "download") {
-          await showAdminSuccess("Invoice ready", `${order.orderNumber}.pdf downloaded.`);
+          await showAdminSuccess(
+            "Invoice ready",
+            `${order.orderNumber}-invoice.pdf downloaded.`
+          );
         }
       } catch (err) {
         await showAdminError(
           "PDF failed",
           err instanceof Error ? err.message : "Could not generate invoice PDF."
         );
+      } finally {
+        setPdfKind(null);
+      }
+    });
+  }
+
+  function handlePackingSlipPdf(mode: "download" | "print") {
+    if (!order) return;
+    setPdfKind("packing");
+    startPdf(async () => {
+      try {
+        const store = await loadStoreSettings();
+        downloadOrderPackingSlipPdf({
+          order,
+          store,
+          openPrint: mode === "print",
+        });
+        if (mode === "download") {
+          await showAdminSuccess(
+            "Packing slip ready",
+            `${order.orderNumber}-packing-slip.pdf downloaded.`
+          );
+        }
+      } catch (err) {
+        await showAdminError(
+          "PDF failed",
+          err instanceof Error ? err.message : "Could not generate packing slip."
+        );
+      } finally {
+        setPdfKind(null);
       }
     });
   }
@@ -293,34 +333,66 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
             })}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            className="rounded-xl"
-            disabled={isPdfPending}
-            onClick={() => handleInvoicePdf("download")}
-            type="button"
-            variant="outline"
-          >
-            {isPdfPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Download PDF
-          </Button>
-          <Button
-            className="rounded-xl bg-brand-green-600 hover:bg-brand-green-900"
-            disabled={isPdfPending}
-            onClick={() => handleInvoicePdf("print")}
-            type="button"
-          >
-            {isPdfPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Printer className="mr-2 h-4 w-4" />
-            )}
-            Print invoice
-          </Button>
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              className="rounded-xl"
+              disabled={isPdfPending}
+              onClick={() => handleInvoicePdf("download")}
+              type="button"
+              variant="outline"
+            >
+              {isPdfPending && pdfKind === "invoice" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download invoice
+            </Button>
+            <Button
+              className="rounded-xl bg-brand-green-600 hover:bg-brand-green-900"
+              disabled={isPdfPending}
+              onClick={() => handleInvoicePdf("print")}
+              type="button"
+            >
+              {isPdfPending && pdfKind === "invoice" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="mr-2 h-4 w-4" />
+              )}
+              Print invoice
+            </Button>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              className="rounded-xl"
+              disabled={isPdfPending}
+              onClick={() => handlePackingSlipPdf("download")}
+              type="button"
+              variant="outline"
+            >
+              {isPdfPending && pdfKind === "packing" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download packing slip
+            </Button>
+            <Button
+              className="rounded-xl border-brand-green-200 bg-brand-green-50 text-brand-green-800 hover:bg-brand-green-100"
+              disabled={isPdfPending}
+              onClick={() => handlePackingSlipPdf("print")}
+              type="button"
+              variant="outline"
+            >
+              {isPdfPending && pdfKind === "packing" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Package2 className="mr-2 h-4 w-4" />
+              )}
+              Print packing slip
+            </Button>
+          </div>
         </div>
       </div>
 

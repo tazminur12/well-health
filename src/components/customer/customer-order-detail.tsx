@@ -78,6 +78,7 @@ function toAdminOrderShape(order: CustomerOrder): AdminOrder {
       productId: item.productId,
       productName: item.name,
       productSlug: item.slug,
+      productSku: null,
       unitPrice: item.unitPrice,
       quantity: item.quantity,
       lineTotal: item.lineTotal,

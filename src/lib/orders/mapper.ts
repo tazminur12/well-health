@@ -4,23 +4,29 @@ import type {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  Product,
 } from "@prisma/client";
 
 import type { AdminOrder, AdminOrderItem } from "@/lib/orders/schemas";
 
-type OrderWithItems = Order & { items: OrderItem[] };
+type OrderItemWithProduct = OrderItem & {
+  product?: Pick<Product, "sku"> | null;
+};
+
+type OrderWithItems = Order & { items: OrderItemWithProduct[] };
 
 function decimalToNumber(value: { toString(): string } | number) {
   if (typeof value === "number") return value;
   return Number(value);
 }
 
-export function mapOrderItemToAdmin(item: OrderItem): AdminOrderItem {
+export function mapOrderItemToAdmin(item: OrderItemWithProduct): AdminOrderItem {
   return {
     id: item.id,
     productId: item.productId,
     productName: item.productName,
     productSlug: item.productSlug,
+    productSku: item.product?.sku ?? null,
     unitPrice: decimalToNumber(item.unitPrice),
     quantity: item.quantity,
     lineTotal: decimalToNumber(item.lineTotal),
