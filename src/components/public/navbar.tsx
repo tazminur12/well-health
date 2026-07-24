@@ -10,6 +10,7 @@ import {
   Home,
   Info,
   LayoutDashboard,
+  LayoutList,
   LogIn,
   LogOut,
   Mail,
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 const navLinks: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/shop", label: "Shop", icon: ShoppingBag },
+  { href: "/product-list", label: "Product List", icon: LayoutList },
   { href: "/blog", label: "Blog", icon: BookOpen },
   { href: "/about", label: "About Us", icon: Info },
   { href: "/distributor", label: "Distributor", icon: Handshake },

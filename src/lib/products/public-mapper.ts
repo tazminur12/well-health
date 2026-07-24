@@ -47,6 +47,13 @@ export function mapAdminToPublic(product: AdminProduct): PublicProduct {
     packSize: product.packSize,
     servingSize: product.servingSize,
     unit: product.unit,
+    dosageForm: product.dosageForm,
+    strength: product.strength,
+    strengthUnit: product.strengthUnit,
+    quantityPerPack: product.quantityPerPack,
+    routeOfAdmin: product.routeOfAdmin,
+    genericName: product.genericName,
+    prescriptionRequired: product.prescriptionRequired,
     tags: product.tags,
     listPrice,
     compareAtPrice: product.compareAtPrice,
@@ -93,6 +100,11 @@ export function toPublicProductCard(product: PublicProduct): PublicProductCard {
     imageTone: product.imageTone,
     labTested: product.labTested,
     featured: product.featured,
+    dosageForm: product.dosageForm,
+    strength: product.strength,
+    strengthUnit: product.strengthUnit,
+    packSize: product.packSize,
+    unit: product.unit,
   };
 }
 

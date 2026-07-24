@@ -18,6 +18,7 @@ import {
   productStatusSchema,
   type ProductInput,
 } from "@/lib/products/schemas";
+import { ensureUnitByName } from "@/lib/units/ensure";
 
 export type ProductActionResult<T = undefined> = {
   error?: string;
@@ -121,6 +122,7 @@ export async function createProductAction(
     }
 
     const categoryId = await resolveCategoryId(parsed.data.category);
+    await ensureUnitByName(parsed.data.unit);
     const product = await prisma.product.create({
       data: buildPrismaProductData(parsed.data, categoryId),
       include: { category: true, images: { orderBy: { sortOrder: "asc" } } },
@@ -145,6 +147,7 @@ export async function updateProductAction(
     }
 
     const categoryId = await resolveCategoryId(parsed.data.category);
+    await ensureUnitByName(parsed.data.unit);
     const product = await prisma.product.update({
       where: { id },
       data: buildPrismaProductData(parsed.data, categoryId),

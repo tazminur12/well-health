@@ -11,6 +11,7 @@ import {
   FileText,
   PanelsTopLeft,
   Package,
+  PackageCheck,
   ShoppingBag,
   Settings,
   Shield,
@@ -18,11 +19,13 @@ import {
   Bell,
   Activity,
   FolderTree,
+  Ruler,
   Warehouse,
   Ticket,
   MessageSquareQuote,
   Truck,
   BarChart3,
+  Bot,
   Megaphone,
   MessagesSquare,
   Handshake,
@@ -76,6 +79,7 @@ const navGroups: AdminNavGroup[] = [
     items: [
       { href: "/admin/products", label: "Products", icon: Package, permission: "products" },
       { href: "/admin/categories", label: "Categories", icon: FolderTree, permission: "categories" },
+      { href: "/admin/units", label: "Units", icon: Ruler, permission: "units" },
       { href: "/admin/inventory", label: "Inventory", icon: Warehouse, permission: "inventory" },
       { href: "/admin/reviews", label: "Reviews", icon: MessageSquareQuote, permission: "reviews" },
     ],
@@ -89,6 +93,7 @@ const navGroups: AdminNavGroup[] = [
       { href: "/admin/customers", label: "Customers", icon: Users, permission: "customers" },
       { href: "/admin/coupons", label: "Coupons", icon: Ticket, permission: "coupons" },
       { href: "/admin/shipping", label: "Shipping", icon: Truck, permission: "shipping" },
+      { href: "/admin/steadfast", label: "Steadfast", icon: PackageCheck, permission: "shipping" },
     ],
   },
   {
@@ -96,6 +101,7 @@ const navGroups: AdminNavGroup[] = [
     label: "Marketing",
     items: [
       { href: "/admin/marketing", label: "Campaigns", icon: Megaphone, permission: "marketing" },
+      { href: "/admin/chatbot", label: "Chatbot", icon: Bot, permission: "chatbot" },
       { href: "/admin/blog", label: "Blog", icon: FileText, permission: "blog" },
       { href: "/admin/content", label: "Content", icon: PanelsTopLeft, permission: "content" },
     ],
@@ -202,8 +208,12 @@ export function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const currentSection = useMemo(() => {
+    if (pathname?.includes("/products/new")) return "Add Product";
+    if (pathname?.match(/\/products\/[^/]+\/edit$/)) return "Edit Product";
+    if (pathname?.match(/\/products\/[^/]+$/)) return "Product Details";
     if (pathname?.includes("/products")) return "Products";
     if (pathname?.includes("/categories")) return "Categories";
+    if (pathname?.includes("/units")) return "Units";
     if (pathname?.includes("/inventory")) return "Inventory";
     if (pathname?.includes("/reviews")) return "Reviews";
     if (pathname?.includes("/orders/new")) return "Add Order";
@@ -212,12 +222,14 @@ export function AdminShell({
     if (pathname?.includes("/payments")) return "Payments";
     if (pathname?.includes("/customers")) return "Customers";
     if (pathname?.includes("/coupons")) return "Coupons";
+    if (pathname?.includes("/steadfast")) return "Steadfast";
     if (pathname?.includes("/shipping")) return "Shipping";
     if (pathname?.includes("/reports")) return "Reports";
     if (pathname?.includes("/messages")) return "Messages";
     if (pathname?.includes("/distributors/new")) return "Add Distributor";
     if (pathname?.includes("/distributors")) return "Distributors";
     if (pathname?.includes("/marketing")) return "Marketing";
+    if (pathname?.includes("/chatbot")) return "Chatbot";
     if (pathname?.includes("/roles")) return "Roles";
     if (pathname?.includes("/blog")) return "Blog";
     if (pathname?.includes("/content")) return "Content";

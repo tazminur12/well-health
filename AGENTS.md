@@ -241,10 +241,22 @@ Core entities: `User` (Role: CUSTOMER / ADMIN / SUPPORT), `Category`, `Product`,
 3. Dashboard stats + recent orders + wishlist preview wired to live data
 4. Guest checkout orders auto-linked when customer signs in with same email
 
+**Completed (Backend — Steadfast Courier):**
+1. Packzy API client (`src/lib/steadfast/client.ts`) — create order, status, balance, returns
+2. Order fields: consignment id, tracking, status, COD amount, syncedAt
+3. Admin order detail Steadfast panel — send consignment, sync status, return request
+4. Admin `/admin/steadfast` dashboard — balance, KPIs, recent consignments, bulk sync
+5. API Health check + Sales sidebar link; env `STEADFAST_API_KEY` / `STEADFAST_SECRET_KEY`
+
+**Completed (Backend — Chatbot Q&A):**
+1. Prisma `ChatbotQa` + `ChatbotUnanswered`; keyword/alias matcher (EN+BN)
+2. Admin `/admin/chatbot` — train Q&A, unanswered queue, live match test
+3. Public ChatWidget wired to `askChatbotAction` + quick replies from DB
+4. Permission `chatbot`; rate limit `chatbot:ask`
+
 **Next up:**
-- Chat Widget — live realtime (backend)
+- Chat Widget — live human agent / Supabase Realtime (optional next)
 - Payment gateways (SSLCommerz / bKash callbacks)
-- Remaining backend (Realtime chat)
 - Bilingual (EN/BN) toggle, SEO, deployment
 
 ---

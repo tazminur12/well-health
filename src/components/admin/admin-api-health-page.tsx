@@ -12,6 +12,7 @@ import {
   Server,
   ShieldCheck,
   Smartphone,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ const serviceIcons: Record<HealthServiceId, LucideIcon> = {
   resend: Mail,
   sslcommerz: CreditCard,
   bkash: Smartphone,
+  steadfast: Truck,
 };
 
 /** Soft clinical-premium gradients per service — brand greens + gold accents */
@@ -81,6 +83,12 @@ const serviceThemes: Record<
     icon: "from-[#BE185D] to-[#E11D48] text-white shadow-[0_8px_20px_rgba(190,24,93,0.28)]",
     bar: "from-[#E11D48] to-[#C9A24B]",
   },
+  steadfast: {
+    card: "from-[#E8F5EE] via-white to-[#F7F8F9]",
+    glow: "bg-brand-green-600/15",
+    icon: "from-[#0B4D3A] to-[#16875D] text-white shadow-[0_8px_20px_rgba(11,77,58,0.28)]",
+    bar: "from-[#0B4D3A] to-[#C9A24B]",
+  },
 };
 
 const statusMeta: Record<
@@ -122,6 +130,7 @@ const categoryLabels = {
   media: "Media & CDN",
   comms: "Communications",
   payments: "Payments",
+  logistics: "Logistics",
 } as const;
 
 function formatCheckedAt(iso: string) {

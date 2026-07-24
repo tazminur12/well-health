@@ -9,6 +9,24 @@ const categories = [
   { name: "Vitamins", slug: "vitamins", sortOrder: 4 },
 ];
 
+const units = [
+  { name: "Bottle", slug: "bottle", sortOrder: 1, description: "Standard bottle packaging" },
+  { name: "Box", slug: "box", sortOrder: 2, description: "Boxed product pack" },
+  {
+    name: "Softgel Pack",
+    slug: "softgel-pack",
+    sortOrder: 3,
+    description: "Softgel blister or pouch pack",
+  },
+  {
+    name: "Sachet Pack",
+    slug: "sachet-pack",
+    sortOrder: 4,
+    description: "Individual sachets in a pack",
+  },
+  { name: "Jar", slug: "jar", sortOrder: 5, description: "Jar packaging" },
+];
+
 const imageTones = [
   "bg-[linear-gradient(135deg,#edf6ff_0%,#d8e9fb_100%)]",
   "bg-[linear-gradient(135deg,#edf8f5_0%,#d8ede7_100%)]",
@@ -38,8 +56,15 @@ type SeedProduct = {
   stock: number;
   lowStockThreshold: number;
   unit: string;
+  dosageForm?: string;
+  strength?: string;
+  strengthUnit?: string;
   packSize?: string;
+  quantityPerPack?: number;
+  routeOfAdmin?: string;
   servingSize?: string;
+  genericName?: string;
+  prescriptionRequired?: boolean;
   shortDescription: string;
   description: string;
   descriptionBn?: string;
@@ -78,9 +103,14 @@ const seedProducts: SeedProduct[] = [
     costPrice: 480,
     stock: 86,
     lowStockThreshold: 15,
-    unit: "Bottle",
+    unit: "Strip",
+    dosageForm: "Tablet",
+    strength: "500 mg",
     packSize: "30 Tablets",
-    servingSize: "1 tablet daily",
+    quantityPerPack: 30,
+    routeOfAdmin: "Oral",
+    servingSize: "1 tablet daily after meal with water",
+    genericName: "Eye vitamin & mineral complex",
     shortDescription: "Eye Vitamin & Mineral, 30 Tablets",
     description:
       "Daily eye vitamin and mineral formula designed to support vision comfort and ocular wellness.",
@@ -118,8 +148,13 @@ const seedProducts: SeedProduct[] = [
     stock: 54,
     lowStockThreshold: 12,
     unit: "Bottle",
-    packSize: "200ml",
+    dosageForm: "Syrup",
+    strength: "250 mg/5 ml",
+    packSize: "100 ml",
+    quantityPerPack: 1,
+    routeOfAdmin: "Oral",
     servingSize: "10ml twice daily",
+    genericName: "Omega 3,6,9 with vitamins & minerals",
     shortDescription: "Omega 3,6,9 with Vitamins & Minerals, 200ml",
     description:
       "Brain support syrup with Omega 3,6,9 plus essential vitamins and minerals for focus and cognitive wellness.",
@@ -151,8 +186,13 @@ const seedProducts: SeedProduct[] = [
     stock: 72,
     lowStockThreshold: 10,
     unit: "Softgel Pack",
-    packSize: "60 Softgels",
+    dosageForm: "Capsule",
+    strength: "1000 mg",
+    packSize: "60 Capsules",
+    quantityPerPack: 60,
+    routeOfAdmin: "Oral",
     servingSize: "1 softgel daily",
+    genericName: "EPA / DHA Omega-3",
     shortDescription: "EPA 650mg | DHA 450mg, 60 Softgels",
     description:
       "High-strength Omega-3 softgels with EPA 650mg and DHA 450mg to support heart and brain health.",
@@ -420,6 +460,18 @@ async function main() {
     });
   }
 
+  for (const unit of units) {
+    await prisma.unit.upsert({
+      where: { slug: unit.slug },
+      create: unit,
+      update: {
+        name: unit.name,
+        sortOrder: unit.sortOrder,
+        description: unit.description,
+      },
+    });
+  }
+
   const categoryMap = Object.fromEntries(
     (await prisma.category.findMany()).map((item) => [item.name, item.id])
   );
@@ -563,6 +615,120 @@ async function main() {
       ],
     });
     console.log("Seeded FAQ items");
+  }
+
+  const chatbotQaCount = await prisma.chatbotQa.count();
+  if (chatbotQaCount === 0) {
+    await prisma.chatbotQa.createMany({
+      data: [
+        {
+          question: "How long does delivery take?",
+          aliases: [
+            "delivery time",
+            "shipping time",
+            "কতদিনে ডেলিভারি",
+            "ডেলিভারি কতদিন",
+          ],
+          keywords: ["delivery", "shipping", "ডেলিভারি", "days", "দিন"],
+          answer:
+            "Most orders are processed within 24 hours and typically delivered in 2–5 business days across Bangladesh, depending on your district. Dhaka orders are often faster.",
+          category: "Shipping",
+          isQuickReply: true,
+          sortOrder: 0,
+        },
+        {
+          question: "Do you offer Cash on Delivery?",
+          aliases: ["COD available?", "ক্যাশ অন ডেলিভারি আছে?", "cash on delivery"],
+          keywords: ["cod", "cash", "ক্যাশ", "payment"],
+          answer:
+            "Yes — Cash on Delivery (COD) is available for eligible areas. You’ll see COD as a payment option at checkout when it’s supported for your address.",
+          category: "Payment",
+          isQuickReply: true,
+          sortOrder: 1,
+        },
+        {
+          question: "How can I track my order?",
+          aliases: ["track order", "order status", "অর্ডার ট্র্যাক", "আমার অর্ডার কোথায়"],
+          keywords: ["track", "order", "status", "ট্র্যাক", "অর্ডার"],
+          answer:
+            "Sign in and open My Orders to see live status (processing → shipped → delivered). If you checked out as a guest, use the confirmation email link or contact us with your order number (WHT-…).",
+          category: "Orders",
+          isQuickReply: true,
+          sortOrder: 2,
+        },
+        {
+          question: "Are your products lab tested?",
+          aliases: ["lab tested?", "quality", "ল্যাব টেস্ট"],
+          keywords: ["lab", "tested", "quality", "safe", "GMP"],
+          answer:
+            "Yes. Our supplements follow quality-focused sourcing and lab-tested standards so you can trust what’s in every bottle.",
+          category: "Products",
+          isQuickReply: false,
+          sortOrder: 3,
+        },
+        {
+          question: "What is your return policy?",
+          aliases: ["return", "refund", "রিটার্ন", "টাকা ফেরত"],
+          keywords: ["return", "refund", "রিটার্ন", "exchange"],
+          answer:
+            "If there’s an issue with your order or product condition, contact support within the return window with your order number and we’ll help resolve it quickly.",
+          category: "Support",
+          isQuickReply: false,
+          sortOrder: 4,
+        },
+        {
+          question: "How do I contact support?",
+          aliases: ["contact", "phone", "whatsapp", "যোগাযোগ", "হেল্পলাইন"],
+          keywords: ["contact", "support", "phone", "whatsapp", "email"],
+          answer:
+            "You can reach us via the Contact page, WhatsApp (see the top bar / contact details), or email. Share your order number if you already placed an order so we can help faster.",
+          category: "Support",
+          isQuickReply: true,
+          sortOrder: 5,
+        },
+        {
+          question: "Do you ship outside Dhaka?",
+          aliases: ["outside dhaka", "all bangladesh", "ঢাকার বাইরে"],
+          keywords: ["dhaka", "outside", "bangladesh", "district", "ঢাকা"],
+          answer:
+            "Yes — we deliver across Bangladesh. Shipping fees and ETA depend on your zone (Dhaka vs outside Dhaka). Exact options appear at checkout.",
+          category: "Shipping",
+          isQuickReply: false,
+          sortOrder: 6,
+        },
+        {
+          question: "How do I become a distributor?",
+          aliases: ["distributor", "wholesale", "ডিস্ট্রিবিউটর", "এজেন্ট"],
+          keywords: ["distributor", "wholesale", "partner", "ডিস্ট্রিবিউটর"],
+          answer:
+            "Visit the Become a Distributor page, submit the partnership form, and our team will review your application. We’ll contact you with next steps.",
+          category: "Business",
+          isQuickReply: false,
+          sortOrder: 7,
+        },
+        {
+          question: "What payment methods do you accept?",
+          aliases: ["payment methods", "bkash", "sslcommerz", "পেমেন্ট"],
+          keywords: ["payment", "bkash", "card", "cod", "ssl"],
+          answer:
+            "We support Cash on Delivery where available, plus online options such as SSLCommerz and bKash when enabled in checkout.",
+          category: "Payment",
+          isQuickReply: false,
+          sortOrder: 8,
+        },
+        {
+          question: "Where can I browse all products?",
+          aliases: ["product list", "shop", "ক্যাটালগ", "প্রোডাক্ট লিস্ট"],
+          keywords: ["shop", "products", "catalog", "list"],
+          answer:
+            "Browse Shop for the curated store experience, or open Product List for the full catalog directory with filters. Product pages show dosage, strength, and pack details when available.",
+          category: "Products",
+          isQuickReply: false,
+          sortOrder: 9,
+        },
+      ],
+    });
+    console.log("Seeded chatbot Q&A");
   }
 
   await prisma.siteSetting.upsert({

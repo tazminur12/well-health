@@ -37,6 +37,12 @@ export const ADMIN_PERMISSIONS = [
     href: "/admin/categories",
   },
   {
+    key: "units",
+    label: "Units",
+    description: "Manage packaging units (bottle, box, softgel pack, etc.)",
+    href: "/admin/units",
+  },
+  {
     key: "inventory",
     label: "Inventory",
     description: "Track stock levels and low-stock alerts",
@@ -69,7 +75,7 @@ export const ADMIN_PERMISSIONS = [
   {
     key: "shipping",
     label: "Shipping",
-    description: "Delivery zones, fees, and courier partners",
+    description: "Delivery zones, fees, courier partners, and Steadfast API",
     href: "/admin/shipping",
   },
   {
@@ -83,6 +89,12 @@ export const ADMIN_PERMISSIONS = [
     label: "Marketing",
     description: "Email and SMS marketing campaigns",
     href: "/admin/marketing",
+  },
+  {
+    key: "chatbot",
+    label: "Chatbot",
+    description: "Train public chat widget Q&A knowledge base",
+    href: "/admin/chatbot",
   },
   {
     key: "roles",
@@ -125,7 +137,7 @@ export function defaultPermissionsForAccessLevel(
     return [...ALL_ADMIN_PERMISSION_KEYS];
   }
   // Support defaults
-  return ["dashboard", "orders", "customers", "messages", "distributors"];
+  return ["dashboard", "orders", "customers", "messages", "distributors", "chatbot"];
 }
 
 export function normalizePermissions(values: string[] | null | undefined): AdminPermissionKey[] {

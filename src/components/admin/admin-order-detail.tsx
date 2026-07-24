@@ -16,7 +16,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
-import { orderStatusPillClass } from "@/components/admin/admin-orders-table";
+import {
+  orderStatusPillClass,
+} from "@/components/admin/admin-orders-table";
+import { SteadfastOrderPanel } from "@/components/admin/steadfast-order-panel";
 import { Button } from "@/components/ui/button";
 import { useAdminOrder, useOrderMutations } from "@/hooks/use-admin-orders";
 import { confirmAdminAction, showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
@@ -379,7 +382,7 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
               Download packing slip
             </Button>
             <Button
-              className="rounded-xl border-brand-green-200 bg-brand-green-50 text-brand-green-800 hover:bg-brand-green-100"
+              className="rounded-xl"
               disabled={isPdfPending}
               onClick={() => handlePackingSlipPdf("print")}
               type="button"
@@ -617,6 +620,8 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
               ) : null}
             </div>
           </section>
+
+          <SteadfastOrderPanel order={order} />
 
           <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <h2 className="font-heading text-lg font-bold text-neutral-900">Update status</h2>

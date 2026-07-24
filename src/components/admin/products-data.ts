@@ -24,8 +24,15 @@ export type AdminProduct = {
   stock: number;
   lowStockThreshold: number;
   unit: string;
+  dosageForm?: string;
+  strength?: string;
+  strengthUnit?: string;
   packSize?: string;
+  quantityPerPack?: number;
+  routeOfAdmin?: string;
   servingSize?: string;
+  genericName?: string;
+  prescriptionRequired?: boolean;
   shortDescription: string;
   description: string;
   descriptionBn?: string;
@@ -55,6 +62,179 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
 ];
 
 export const PRODUCT_UNITS = ["Bottle", "Box", "Softgel Pack", "Sachet Pack", "Jar"];
+
+/** Pharmaceutical dosage forms shown on admin product forms & PDP. */
+export const DOSAGE_FORMS = [
+  "Tablet",
+  "Capsule",
+  "Syrup",
+  "Injection",
+  "Cream",
+  "Ointment",
+  "Drops",
+  "Eye Drop",
+  "Inhaler",
+] as const;
+
+export type DosageForm = (typeof DOSAGE_FORMS)[number];
+
+/**
+ * Strength measurement vocabulary (for examples / helpers).
+ * Strength itself is stored as one text field, e.g. "500 mg", "250 mg/5 ml", "1%".
+ */
+export const STRENGTH_UNITS = [
+  "mg",
+  "mcg",
+  "g",
+  "kg",
+  "ml",
+  "L",
+  "IU",
+  "mEq",
+  "%",
+  "mg/ml",
+  "mg/5 ml",
+  "mg/g",
+  "mcg/ml",
+  "IU/ml",
+] as const;
+
+export type StrengthUnit = (typeof STRENGTH_UNITS)[number];
+
+/** Example strength values for admin datalist (Arogga / Lazz-style). */
+export const STRENGTH_EXAMPLES = [
+  "500 mg",
+  "250 mg",
+  "250 mg/5 ml",
+  "10 mg/ml",
+  "1000 IU",
+  "1000 IU/ml",
+  "5 mcg",
+  "1%",
+  "50 mg/g",
+  "25 mcg/ml",
+] as const;
+
+/**
+ * Pack quantity types — NOT strength units.
+ * Used with quantity to build pack size, e.g. "10 Tablets", "100 ml".
+ */
+export const PACK_TYPES = [
+  "Tablet",
+  "Capsule",
+  "Bottle",
+  "Tube",
+  "Vial",
+  "Ampoule",
+  "Strip",
+  "Sachet",
+  "Pack",
+  "Box",
+  "Piece",
+  "ml",
+  "g",
+] as const;
+
+export type PackType = (typeof PACK_TYPES)[number];
+
+/** How the medicine is administered (value stored in DB; label shown in admin UI). */
+export const ROUTES_OF_ADMINISTRATION = [
+  { value: "Oral", label: "Oral (মুখে সেবন)" },
+  { value: "Topical", label: "Topical (ত্বকে প্রয়োগ)" },
+  { value: "Intravenous (IV)", label: "Intravenous (IV) (শিরায়)" },
+  { value: "Intramuscular (IM)", label: "Intramuscular (IM) (মাংসপেশিতে)" },
+  { value: "Subcutaneous (SC)", label: "Subcutaneous (SC) (ত্বকের নিচে)" },
+  { value: "Inhalation", label: "Inhalation (শ্বাসের মাধ্যমে)" },
+  { value: "Ophthalmic (Eye)", label: "Ophthalmic (Eye) (চোখে)" },
+  { value: "Otic (Ear)", label: "Otic (Ear) (কানে)" },
+  { value: "Nasal", label: "Nasal (নাকে)" },
+  { value: "Rectal", label: "Rectal (মলদ্বারে)" },
+  { value: "Vaginal", label: "Vaginal (যোনিতে)" },
+  { value: "Sublingual", label: "Sublingual (জিভের নিচে)" },
+  { value: "Buccal", label: "Buccal (গালের ভিতরে)" },
+] as const;
+
+export type RouteOfAdministration = (typeof ROUTES_OF_ADMINISTRATION)[number]["value"];
+
+/** Map legacy short values to the new catalog labels. */
+export function normalizeRouteOfAdmin(value?: string | null) {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  const direct = ROUTES_OF_ADMINISTRATION.find((item) => item.value === trimmed);
+  if (direct) return direct.value;
+
+  const legacy: Record<string, RouteOfAdministration> = {
+    IV: "Intravenous (IV)",
+    IM: "Intramuscular (IM)",
+    SC: "Subcutaneous (SC)",
+    Eye: "Ophthalmic (Eye)",
+    Ear: "Otic (Ear)",
+  };
+  return legacy[trimmed] ?? trimmed;
+}
+
+export function routeOfAdminLabel(value?: string | null) {
+  const normalized = normalizeRouteOfAdmin(value);
+  if (!normalized) return undefined;
+  const match = ROUTES_OF_ADMINISTRATION.find((item) => item.value === normalized);
+  return match?.label ?? normalized;
+}
+
+/** Common pack-size presets (free text still allowed). */
+export const PACK_SIZE_PRESETS = [
+  "10 Tablets",
+  "30 Capsules",
+  "60 Capsules",
+  "100 ml",
+  "1 Tube",
+  "1 Vial",
+  "1 Ampoule",
+  "10 Sachets",
+  "1 Pack",
+  "1 Box",
+  "30 Softgels",
+] as const;
+
+/** Build pack size text from quantity + pack type. */
+export function buildPackSizeLabel(quantity: number, packType: string) {
+  if (!quantity || quantity < 1 || !packType.trim()) return "";
+  const type = packType.trim();
+  if (type === "ml" || type === "g") return `${quantity} ${type}`;
+
+  const plurals: Record<string, string> = {
+    Tablet: "Tablets",
+    Capsule: "Capsules",
+    Bottle: "Bottles",
+    Tube: "Tubes",
+    Vial: "Vials",
+    Ampoule: "Ampoules",
+    Strip: "Strips",
+    Sachet: "Sachets",
+    Pack: "Packs",
+    Box: "Boxes",
+    Piece: "Pieces",
+  };
+
+  if (quantity === 1) return `1 ${type}`;
+  return `${quantity} ${plurals[type] ?? type}`;
+}
+
+/**
+ * Display strength for storefront / admin.
+ * Prefers the single strength text; falls back to legacy strength + unit.
+ */
+export function formatProductStrength(
+  strength?: string | null,
+  strengthUnit?: string | null
+) {
+  const value = strength?.trim();
+  if (!value) return undefined;
+  const unit = strengthUnit?.trim();
+  if (!unit) return value;
+  // Already a full strength string (Arogga-style)
+  if (/[a-zA-Z%]/.test(value)) return value;
+  return `${value} ${unit}`;
+}
 
 const imageTones = [
   "bg-[linear-gradient(135deg,#edf6ff_0%,#d8e9fb_100%)]",

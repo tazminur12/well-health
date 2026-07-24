@@ -1,71 +1,47 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X } from "lucide-react";
 
 import { ChatBubbleIcon } from "@/components/chat/chat-bubble-icon";
 import { type ChatMessageData } from "@/components/chat/chat-message";
 import { ChatPanel } from "@/components/chat/chat-panel";
+import {
+  askChatbotAction,
+  getChatbotBootstrapAction,
+} from "@/lib/chatbot/actions";
 
 type ToastState = {
   visible: boolean;
   message: ChatMessageData | null;
 };
 
-const initialMessages: ChatMessageData[] = [
-  {
-    id: "msg-1",
-    sender: "support",
-    text: "Hello! 👋 Welcome to Well Health Trade International. How can we help you today?",
-    timestamp: "09:12 AM",
-  },
-  {
-    id: "msg-2",
-    sender: "customer",
-    text: "Hi, I want to know more about Eyecare-B and delivery options.",
-    timestamp: "09:13 AM",
-  },
-  {
-    id: "msg-3",
-    sender: "support",
-    text: "Certainly. Eyecare-B is one of our most requested products and we usually ship within 24 hours in Dhaka.",
-    timestamp: "09:14 AM",
-  },
-  {
-    id: "msg-4",
-    sender: "customer",
-    text: "Great, thanks. Is cash on delivery available?",
-    timestamp: "09:15 AM",
-  },
-  {
-    id: "msg-5",
-    sender: "support",
-    text: "Yes, COD is available for selected locations. We can also help you track your order after checkout.",
-    timestamp: "09:16 AM",
-  },
-];
-
-const quickReplies = ["Track my order", "Product questions", "Shipping info"];
-
 function buildMessage(text: string, sender: ChatMessageData["sender"]): ChatMessageData {
   return {
-    id: `${sender}-${Date.now()}`,
+    id: `${sender}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     sender,
     text,
     timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   };
 }
 
+const DEFAULT_WELCOME =
+  "Hello! Welcome to Well Health Trade International. How can we help you today?";
+
 export function ChatWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessageData[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessageData[]>(() => [
+    buildMessage(DEFAULT_WELCOME, "support"),
+  ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(2);
+  const [unreadCount, setUnreadCount] = useState(1);
   const [toast, setToast] = useState<ToastState>({ visible: false, message: null });
-  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(true);
+  const [quickReplies, setQuickReplies] = useState<string[]>([]);
+  const [, startTransition] = useTransition();
 
   const isAdminRoute = pathname?.startsWith("/admin");
   const isCustomerAccountRoute =
@@ -82,32 +58,18 @@ export function ChatWidget() {
   useEffect(() => {
     if (hideWidget) return;
 
-    const timer = window.setTimeout(() => {
-      setTyping(true);
+    let cancelled = false;
+    void getChatbotBootstrapAction().then((result) => {
+      if (cancelled || !result.data) return;
+      setQuickReplies(result.data.quickReplies);
+      setShowQuickReplies(result.data.quickReplies.length > 0);
+      setMessages([buildMessage(result.data.welcome, "support")]);
+    });
 
-      window.setTimeout(() => {
-        const incomingMessage = buildMessage(
-          "One of our team members can guide you on the best supplement options for your needs.",
-          "support"
-        );
-
-        setMessages((current) => [...current, incomingMessage]);
-        setTyping(false);
-        setShowQuickReplies(false);
-
-        if (!open) {
-          setUnreadCount((current) => current + 1);
-          setToast({ visible: true, message: incomingMessage });
-
-          window.setTimeout(() => {
-            setToast({ visible: false, message: null });
-          }, 4500);
-        }
-      }, 1400);
-    }, 8000);
-
-    return () => window.clearTimeout(timer);
-  }, [hideWidget, open]);
+    return () => {
+      cancelled = true;
+    };
+  }, [hideWidget]);
 
   useEffect(() => {
     if (open) {
@@ -116,21 +78,61 @@ export function ChatWidget() {
     }
   }, [open]);
 
-  const handleSend = () => {
+  async function replyTo(text: string) {
+    setTyping(true);
+    try {
+      const result = await askChatbotAction({ message: text });
+      const answer =
+        result.data?.answer ??
+        result.error ??
+        "Sorry — something went wrong. Please try again or visit Contact.";
+      const botMessage = buildMessage(answer, "support");
+      setMessages((current) => [...current, botMessage]);
+      if (result.data?.quickReplies?.length) {
+        setQuickReplies(result.data.quickReplies);
+      }
+
+      if (!open) {
+        setUnreadCount((current) => current + 1);
+        setToast({ visible: true, message: botMessage });
+        window.setTimeout(() => {
+          setToast({ visible: false, message: null });
+        }, 4500);
+      }
+    } finally {
+      setTyping(false);
+    }
+  }
+
+  function handleSend() {
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed || typing) return;
 
     setMessages((current) => [...current, buildMessage(trimmed, "customer")]);
     setInput("");
     setShowQuickReplies(false);
-  };
+    startTransition(() => {
+      void replyTo(trimmed);
+    });
+  }
 
-  const handleQuickReply = (reply: string) => {
-    setInput(reply);
+  function handleQuickReply(reply: string) {
+    if (typing) return;
+    setMessages((current) => [...current, buildMessage(reply, "customer")]);
+    setInput("");
     setShowQuickReplies(false);
-  };
+    startTransition(() => {
+      void replyTo(reply);
+    });
+  }
 
-  const visibleQuickReplies = useMemo(() => showQuickReplies && messages.length <= 1, [messages.length, showQuickReplies]);
+  const visibleQuickReplies = useMemo(
+    () =>
+      showQuickReplies &&
+      !typing &&
+      messages.filter((m) => m.sender === "customer").length === 0,
+    [messages, showQuickReplies, typing]
+  );
 
   if (hideWidget) return null;
 
@@ -171,7 +173,9 @@ export function ChatWidget() {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-neutral-900">Well Health Team</p>
               <p className="mt-1 text-xs leading-5 text-neutral-500">
-                {toast.message.text.length > 72 ? `${toast.message.text.slice(0, 72)}...` : toast.message.text}
+                {toast.message.text.length > 72
+                  ? `${toast.message.text.slice(0, 72)}...`
+                  : toast.message.text}
               </p>
             </div>
           </div>

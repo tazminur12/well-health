@@ -7,7 +7,8 @@ export type HealthServiceId =
   | "cloudinary"
   | "resend"
   | "sslcommerz"
-  | "bkash";
+  | "bkash"
+  | "steadfast";
 
 export type HealthServiceResult = {
   id: HealthServiceId;
@@ -17,7 +18,7 @@ export type HealthServiceResult = {
   latencyMs: number | null;
   message: string;
   detail?: string;
-  category: "core" | "media" | "comms" | "payments";
+  category: "core" | "media" | "comms" | "payments" | "logistics";
 };
 
 export type ApiHealthReport = {

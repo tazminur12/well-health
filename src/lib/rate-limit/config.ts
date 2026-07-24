@@ -11,6 +11,7 @@ export const RATE_LIMITS = {
   "checkout:place-order": { limit: 15, window: "1 h" },
   "checkout:coupon": { limit: 30, window: "15 m" },
   "checkout:order-lookup": { limit: 20, window: "15 m" },
+  "chatbot:ask": { limit: 40, window: "15 m" },
 } as const;
 
 export type RateLimitScope = keyof typeof RATE_LIMITS;

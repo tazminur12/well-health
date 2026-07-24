@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { mapProductToAdmin } from "@/lib/products/mapper";
 import { mapAdminToPublic, toPublicProductCard } from "@/lib/products/public-mapper";
-import type { PublicProduct, PublicProductCard } from "@/lib/products/public-types";
+import type { PublicProduct, PublicProductCard, PublicShopCategory } from "@/lib/products/public-types";
 import { prisma } from "@/lib/prisma";
 
 type ProductRow = Product & {
@@ -101,3 +101,26 @@ export async function getActiveProductSlugs() {
   });
   return rows;
 }
+
+/** Active categories that have at least one active product. */
+export const getShopCategories = cache(async (): Promise<PublicShopCategory[]> => {
+  const rows = await prisma.category.findMany({
+    where: { isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    include: {
+      _count: {
+        select: {
+          products: { where: { status: ProductStatus.ACTIVE } },
+        },
+      },
+    },
+  });
+
+  return rows
+    .filter((row) => row._count.products > 0)
+    .map((row) => ({
+      name: row.name,
+      slug: row.slug,
+      productCount: row._count.products,
+    }));
+});

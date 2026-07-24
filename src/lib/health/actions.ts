@@ -8,6 +8,7 @@ import type {
 } from "@/lib/health/schemas";
 import { cloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import { getSteadfastBalance, isSteadfastConfigured } from "@/lib/steadfast/client";
 
 export type HealthActionResult = {
   error?: string;
@@ -303,6 +304,49 @@ async function checkBkash(): Promise<HealthServiceResult> {
   };
 }
 
+async function checkSteadfast(): Promise<HealthServiceResult> {
+  const base = {
+    id: "steadfast" as const,
+    name: "Steadfast Courier",
+    description: "Packzy delivery API — consignments & tracking",
+    category: "logistics" as const,
+  };
+
+  if (!isSteadfastConfigured()) {
+    return {
+      ...base,
+      status: "not_configured",
+      latencyMs: null,
+      message: "API keys missing",
+      detail: "Add STEADFAST_API_KEY & STEADFAST_SECRET_KEY",
+    };
+  }
+
+  const result = await timed(async () => {
+    const balance = await getSteadfastBalance();
+    if (!balance.ok) throw new Error(balance.error);
+    return balance.data.current_balance;
+  });
+
+  if (!result.ok) {
+    return {
+      ...base,
+      status: "down",
+      latencyMs: result.latencyMs,
+      message: "Steadfast API unreachable",
+      detail: result.error,
+    };
+  }
+
+  return {
+    ...base,
+    status: result.latencyMs > 2000 ? "degraded" : "healthy",
+    latencyMs: result.latencyMs,
+    message: result.latencyMs > 2000 ? "Connected, high latency" : "API connected",
+    detail: `Balance ৳${result.value.toLocaleString("en-BD")}`,
+  };
+}
+
 export async function runApiHealthCheckAction(): Promise<HealthActionResult> {
   try {
     await requireAdminPermission("settings");
@@ -316,6 +360,7 @@ export async function runApiHealthCheckAction(): Promise<HealthActionResult> {
       checkResend(),
       checkSslCommerz(),
       checkBkash(),
+      checkSteadfast(),
     ]);
 
     const active = services.filter((s) => s.status !== "not_configured");

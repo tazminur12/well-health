@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Package2, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
+import { formatProductStrength } from "@/components/admin/products-data";
 import { WishlistButton } from "@/components/public/wishlist-button";
 import { showSuccess } from "@/lib/alerts";
 import { formatPrice } from "@/lib/format-price";
@@ -16,11 +17,18 @@ type ProductListItemProps = {
   product: PublicProductCard;
 };
 
+function productSpecLine(product: PublicProductCard) {
+  const strength = formatProductStrength(product.strength, product.strengthUnit);
+  const parts = [product.dosageForm, strength, product.packSize].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 export function ProductListItem({ product }: ProductListItemProps) {
   const [justAdded, setJustAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const href = `/shop/${product.slug}`;
   const compareAt = getDisplayCompareAt(product);
+  const specLine = productSpecLine(product);
   const wishlistProduct = {
     productId: product.id,
     slug: product.slug,
@@ -82,6 +90,11 @@ export function ProductListItem({ product }: ProductListItemProps) {
                   {product.name}
                 </h3>
               </Link>
+              {specLine ? (
+                <p className="mt-0.5 truncate text-[11px] font-medium text-neutral-500 sm:text-xs">
+                  {specLine}
+                </p>
+              ) : null}
               <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-neutral-500 sm:mt-1 sm:line-clamp-1 sm:text-sm sm:leading-6">
                 {product.shortDescription}
               </p>

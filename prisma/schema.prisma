@@ -177,6 +177,20 @@ model Category {
   @@map("categories")
 }
 
+model Unit {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("units")
+}
+
 model Product {
   id                 String        @id @default(cuid())
   name               String
@@ -200,8 +214,15 @@ model Product {
   stock              Int           @default(0)
   lowStockThreshold  Int           @default(10) @map("low_stock_threshold")
   unit               String        @default("Bottle")
+  dosageForm         String?       @map("dosage_form")
+  strength           String?
+  strengthUnit       String?       @map("strength_unit")
   packSize           String?       @map("pack_size")
+  quantityPerPack    Int?          @map("quantity_per_pack")
+  routeOfAdmin       String?       @map("route_of_admin")
   servingSize        String?       @map("serving_size")
+  genericName        String?       @map("generic_name")
+  prescriptionRequired Boolean     @default(false) @map("prescription_required")
   shortDescription   String        @map("short_description")
   description        String
   descriptionBn      String?       @map("description_bn")
@@ -322,6 +343,46 @@ model FaqItem {
 
   @@index([isActive, sortOrder])
   @@map("faq_items")
+}
+
+/// Trainable chatbot knowledge base (separate from public FAQ accordion).
+model ChatbotQa {
+  id           String   @id @default(cuid())
+  question     String
+  answer       String
+  /// Alternate phrasings visitors might use (newline or JSON array in app)
+  aliases      String[] @default([])
+  /// Extra keywords / synonyms for matching
+  keywords     String[] @default([])
+  category     String?
+  isActive     Boolean  @default(true) @map("is_active")
+  isQuickReply Boolean  @default(false) @map("is_quick_reply")
+  sortOrder    Int      @default(0) @map("sort_order")
+  hitCount     Int      @default(0) @map("hit_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  resolvedFrom ChatbotUnanswered[]
+
+  @@index([isActive, sortOrder])
+  @@index([isQuickReply, isActive])
+  @@map("chatbot_qas")
+}
+
+/// Visitor questions with no confident match — train from admin.
+model ChatbotUnanswered {
+  id           String    @id @default(cuid())
+  question     String
+  normalized   String
+  count        Int       @default(1)
+  lastAskedAt  DateTime  @default(now()) @map("last_asked_at")
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedQaId String?   @map("resolved_qa_id")
+  resolvedQa   ChatbotQa? @relation(fields: [resolvedQaId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@unique([normalized])
+  @@index([resolvedAt, lastAskedAt])
+  @@map("chatbot_unanswered")
 }
 
 /// Keyed CMS documents: about_home, site_assets, store_settings, etc.
@@ -616,6 +677,13 @@ model Order {
   status             OrderStatus   @default(PENDING)
   notes              String?
   couponCode         String?       @map("coupon_code")
+  /// Steadfast Courier consignment (Packzy API)
+  steadfastConsignmentId Int?       @map("steadfast_consignment_id")
+  steadfastInvoice       String?    @map("steadfast_invoice")
+  steadfastTrackingCode  String?    @map("steadfast_tracking_code")
+  steadfastStatus        String?    @map("steadfast_status")
+  steadfastCodAmount     Decimal?   @map("steadfast_cod_amount") @db.Decimal(12, 2)
+  steadfastSyncedAt      DateTime?  @map("steadfast_synced_at")
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
   items              OrderItem[]
@@ -624,6 +692,8 @@ model Order {
   @@index([status, createdAt])
   @@index([paymentStatus])
   @@index([email])
+  @@index([steadfastTrackingCode])
+  @@index([steadfastConsignmentId])
   @@map("orders")
 }
 

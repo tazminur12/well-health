@@ -14,6 +14,7 @@ import {
   getProductBySlug,
   getRelatedProducts,
 } from "@/lib/products/public-queries";
+import { formatProductStrength } from "@/components/admin/products-data";
 import { getSeoAssets } from "@/lib/seo/page-assets";
 import { buildProductPageStructuredData } from "@/lib/seo/structured-data";
 import { buildPageMetadata } from "@/lib/seo/site";
@@ -66,13 +67,39 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const related = await getRelatedProducts(product.id, product.category, 4);
   const structuredData = buildProductPageStructuredData(product);
 
+  const strengthLabel = formatProductStrength(product.strength, product.strengthUnit);
+
   const specs = [
-    { label: "Brand", value: product.brand },
-    { label: "Category", value: product.category },
-    { label: "Unit", value: product.unit },
-    product.packSize ? { label: "Pack size", value: product.packSize } : null,
-    product.servingSize ? { label: "Serving size", value: product.servingSize } : null,
-    { label: "Availability", value: product.stockBucket },
+    { label: "Brand (ব্র্যান্ড)", value: product.brand },
+    { label: "Category (ক্যাটাগরি)", value: product.category },
+    product.genericName
+      ? { label: "Generic name (জেনেরিক নাম)", value: product.genericName }
+      : null,
+    product.dosageForm
+      ? { label: "Dosage form (ডোজ ফর্ম)", value: product.dosageForm }
+      : null,
+    strengthLabel ? { label: "Strength (শক্তি / মাত্রা)", value: strengthLabel } : null,
+    { label: "Packaging unit (প্যাকেজিং ইউনিট)", value: product.unit },
+    product.packSize ? { label: "Pack size (প্যাক সাইজ)", value: product.packSize } : null,
+    product.quantityPerPack
+      ? {
+          label: "Quantity per pack (প্রতি প্যাকে পরিমাণ)",
+          value: String(product.quantityPerPack),
+        }
+      : null,
+    product.routeOfAdmin
+      ? {
+          label: "Route of administration (প্রয়োগের পথ)",
+          value: product.routeOfAdmin,
+        }
+      : null,
+    product.servingSize
+      ? { label: "Serving / dose (সেবনবিধি)", value: product.servingSize }
+      : null,
+    product.prescriptionRequired
+      ? { label: "Prescription (প্রেসক্রিপশন)", value: "Required (প্রয়োজন)" }
+      : null,
+    { label: "Availability (প্রাপ্যতা)", value: product.stockBucket },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 
   const badgeLabel = product.offerActive

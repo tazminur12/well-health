@@ -78,7 +78,8 @@ export function AddAddressModal({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (isSaving) return;
-    const { division: _division, ...addressFields } = form;
+    const { division, ...addressFields } = form;
+    void division;
     await onSave({
       id: address?.id,
       ...addressFields,

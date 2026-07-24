@@ -92,6 +92,13 @@ export type AdminOrder = {
   status: OrderStatusValue;
   notes: string | null;
   couponCode: string | null;
+  steadfastConsignmentId: number | null;
+  steadfastInvoice: string | null;
+  steadfastTrackingCode: string | null;
+  steadfastStatus: string | null;
+  steadfastCodAmount: number | null;
+  steadfastSyncedAt: string | null;
+  steadfastTrackingUrl: string | null;
   itemCount: number;
   createdAt: string;
   updatedAt: string;

@@ -1,4 +1,4 @@
-import type { StaffRole, User } from "@prisma/client";
+import type { StaffRole } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {

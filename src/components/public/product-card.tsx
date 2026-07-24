@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FlaskConical, Package2, ShoppingCart } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 
+import { formatProductStrength } from "@/components/admin/products-data";
 import { WishlistButton } from "@/components/public/wishlist-button";
 import { showSuccess } from "@/lib/alerts";
 import { formatPrice } from "@/lib/format-price";
@@ -16,11 +17,18 @@ type ProductCardProps = {
   product: PublicProductCard;
 };
 
+function productSpecLine(product: PublicProductCard) {
+  const strength = formatProductStrength(product.strength, product.strengthUnit);
+  const parts = [product.dosageForm, strength, product.packSize].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 export function ProductCard({ product }: ProductCardProps) {
   const [justAdded, setJustAdded] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const href = `/shop/${product.slug}`;
   const compareAt = getDisplayCompareAt(product);
+  const specLine = productSpecLine(product);
 
   function handleAddToCart(event: MouseEvent) {
     event.preventDefault();
@@ -107,6 +115,10 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
+
+        {specLine ? (
+          <p className="truncate text-[11px] font-medium text-neutral-500 sm:text-xs">{specLine}</p>
+        ) : null}
 
         <p className="line-clamp-2 hidden text-sm leading-6 text-neutral-500 sm:block">
           {product.shortDescription}

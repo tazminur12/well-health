@@ -18,6 +18,13 @@ export type PublicProduct = {
   packSize?: string;
   servingSize?: string;
   unit: string;
+  dosageForm?: string;
+  strength?: string;
+  strengthUnit?: string;
+  quantityPerPack?: number;
+  routeOfAdmin?: string;
+  genericName?: string;
+  prescriptionRequired?: boolean;
   tags: string[];
   /** Regular / list price before active offer. */
   listPrice: number;
@@ -65,4 +72,15 @@ export type PublicProductCard = Pick<
   | "imageTone"
   | "labTested"
   | "featured"
+  | "dosageForm"
+  | "strength"
+  | "strengthUnit"
+  | "packSize"
+  | "unit"
 >;
+
+export type PublicShopCategory = {
+  name: string;
+  slug: string;
+  productCount: number;
+};

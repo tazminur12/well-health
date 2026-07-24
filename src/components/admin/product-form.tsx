@@ -19,12 +19,22 @@ import {
   type AdminProduct,
   type ProductCategory,
   type ProductStatus,
+  DOSAGE_FORMS,
+  PACK_SIZE_PRESETS,
+  PACK_TYPES,
   PRODUCT_CATEGORIES,
   PRODUCT_UNITS,
+  ROUTES_OF_ADMINISTRATION,
+  STRENGTH_EXAMPLES,
+  STRENGTH_UNITS,
+  buildPackSizeLabel,
+  formatProductStrength,
+  normalizeRouteOfAdmin,
   slugifyProductName,
 } from "@/components/admin/products-data";
 import { Button } from "@/components/ui/button";
 import { useAdminProduct, useProductMutations } from "@/hooks/use-admin-products";
+import { useActiveUnits } from "@/hooks/use-admin-units";
 import { showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
 import type { ProductInput } from "@/lib/products/schemas";
 import { cn } from "@/lib/utils";
@@ -48,8 +58,16 @@ type FormState = {
   stock: string;
   lowStockThreshold: string;
   unit: string;
+  dosageForm: string;
+  strength: string;
+  strengthUnitHelper: string;
+  packType: string;
   packSize: string;
+  quantityPerPack: string;
+  routeOfAdmin: string;
   servingSize: string;
+  genericName: string;
+  prescriptionRequired: boolean;
   shortDescription: string;
   description: string;
   descriptionBn: string;
@@ -97,8 +115,16 @@ function productToForm(product?: AdminProduct): FormState {
       stock: "0",
       lowStockThreshold: "10",
       unit: "Bottle",
+      dosageForm: "",
+      strength: "",
+      strengthUnitHelper: "",
+      packType: "",
       packSize: "",
+      quantityPerPack: "",
+      routeOfAdmin: "",
       servingSize: "",
+      genericName: "",
+      prescriptionRequired: false,
       shortDescription: "",
       description: "",
       descriptionBn: "",
@@ -137,8 +163,17 @@ function productToForm(product?: AdminProduct): FormState {
     stock: String(product.stock),
     lowStockThreshold: String(product.lowStockThreshold),
     unit: product.unit,
+    dosageForm: product.dosageForm ?? "",
+    strength: formatProductStrength(product.strength, product.strengthUnit) ?? "",
+    strengthUnitHelper: "",
+    packType: "",
     packSize: product.packSize ?? "",
+    quantityPerPack:
+      product.quantityPerPack != null ? String(product.quantityPerPack) : "",
+    routeOfAdmin: normalizeRouteOfAdmin(product.routeOfAdmin) ?? "",
     servingSize: product.servingSize ?? "",
+    genericName: product.genericName ?? "",
+    prescriptionRequired: product.prescriptionRequired ?? false,
     shortDescription: product.shortDescription,
     description: product.description,
     descriptionBn: product.descriptionBn ?? "",
@@ -173,6 +208,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
   } = useAdminProduct(mode === "edit" ? productId : undefined);
   const { createProduct, updateProduct, uploadImages, deleteImage } =
     useProductMutations();
+  const { data: activeUnits = [] } = useActiveUnits();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [slugManual, setSlugManual] = useState(Boolean(existing?.slug));
@@ -186,6 +222,15 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  const unitOptions = useMemo(() => {
+    const fromDb = activeUnits.map((unit) => unit.name);
+    const fallback = fromDb.length > 0 ? fromDb : [...PRODUCT_UNITS];
+    if (form.unit && !fallback.includes(form.unit)) {
+      return [form.unit, ...fallback];
+    }
+    return fallback;
+  }, [activeUnits, form.unit]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -367,8 +412,17 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
         stock: Number(form.stock || 0),
         lowStockThreshold: Number(form.lowStockThreshold || 10),
         unit: form.unit,
+        dosageForm: form.dosageForm.trim() || undefined,
+        strength: form.strength.trim() || undefined,
+        strengthUnit: undefined,
         packSize: form.packSize.trim() || undefined,
+        quantityPerPack: form.quantityPerPack
+          ? Number(form.quantityPerPack)
+          : undefined,
+        routeOfAdmin: normalizeRouteOfAdmin(form.routeOfAdmin.trim()) || undefined,
         servingSize: form.servingSize.trim() || undefined,
+        genericName: form.genericName.trim() || undefined,
+        prescriptionRequired: form.prescriptionRequired,
         shortDescription: form.shortDescription.trim(),
         description: form.description.trim(),
         descriptionBn: form.descriptionBn.trim() || undefined,
@@ -507,9 +561,9 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
-          <Section title="Basic information" subtitle="Core catalog identity for storefront and admin.">
+          <Section title="Basic information (মৌলিক তথ্য)" subtitle="Core catalog identity for storefront and admin.">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Product name *" className="sm:col-span-2">
+              <Field label="Product name (পণ্যের নাম) *" className="sm:col-span-2">
                 <input
                   className={inputClass}
                   onChange={(event) => handleNameChange(event.target.value)}
@@ -518,7 +572,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
 
-              <Field label="Product name (Bangla)" className="sm:col-span-2">
+              <Field label="Product name Bangla (পণ্যের নাম বাংলা)" className="sm:col-span-2">
                 <input
                   className={cn(inputClass, "font-bangla")}
                   onChange={(event) => update("nameBn", event.target.value)}
@@ -527,7 +581,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
 
-              <Field helper="Used in product URL" label="Slug *">
+              <Field helper="Used in product URL" label="Slug (স্লাগ) *">
                 <input
                   className={inputClass}
                   onChange={(event) => {
@@ -539,7 +593,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
 
-              <Field label="Brand">
+              <Field label="Brand (ব্র্যান্ড)">
                 <input
                   className={inputClass}
                   onChange={(event) => update("brand", event.target.value)}
@@ -547,7 +601,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
 
-              <Field label="Category *">
+              <Field label="Category (ক্যাটাগরি) *">
                 <select
                   className={inputClass}
                   onChange={(event) => update("category", event.target.value as ProductCategory)}
@@ -561,7 +615,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 </select>
               </Field>
 
-              <Field label="SKU / Product code">
+              <Field label="SKU / Product code (এসকেইউ / পণ্য কোড)">
                 <input
                   className={inputClass}
                   onChange={(event) => update("sku", event.target.value.toUpperCase())}
@@ -570,7 +624,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
 
-              <Field label="Barcode" className="sm:col-span-2">
+              <Field label="Barcode (বারকোড)" className="sm:col-span-2">
                 <input
                   className={inputClass}
                   onChange={(event) => update("barcode", event.target.value)}
@@ -581,9 +635,9 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
             </div>
           </Section>
 
-          <Section title="Pricing & inventory" subtitle="Bangladesh market pricing with stock controls.">
+          <Section title="Pricing & inventory (মূল্য ও ইনভেন্টরি)" subtitle="Bangladesh market pricing with stock controls.">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Selling price (৳) *">
+              <Field label="Selling price (বিক্রয় মূল্য) (৳) *">
                 <input
                   className={inputClass}
                   min={0}
@@ -592,7 +646,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.price}
                 />
               </Field>
-              <Field label="Compare-at price (৳)">
+              <Field label="Compare-at price (তুলনামূলক মূল্য) (৳)">
                 <input
                   className={inputClass}
                   min={0}
@@ -601,7 +655,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.compareAtPrice}
                 />
               </Field>
-              <Field helper={marginPreview ? `Margin ~ ${marginPreview}%` : undefined} label="Cost price (৳)">
+              <Field helper={marginPreview ? `Margin ~ ${marginPreview}%` : undefined} label="Cost price (ক্রয় মূল্য) (৳)">
                 <input
                   className={inputClass}
                   min={0}
@@ -610,7 +664,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.costPrice}
                 />
               </Field>
-              <Field label="Stock quantity">
+              <Field label="Stock quantity (স্টকের পরিমাণ)">
                 <input
                   className={inputClass}
                   min={0}
@@ -619,7 +673,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.stock}
                 />
               </Field>
-              <Field label="Low stock threshold">
+              <Field label="Low stock threshold (কম স্টক সীমা)">
                 <input
                   className={inputClass}
                   min={0}
@@ -628,53 +682,232 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.lowStockThreshold}
                 />
               </Field>
-              <Field label="Unit">
+              <Field label="Packaging unit (প্যাকেজিং ইউনিট)">
                 <select
                   className={inputClass}
                   onChange={(event) => update("unit", event.target.value)}
                   value={form.unit}
                 >
-                  {PRODUCT_UNITS.map((unit) => (
+                  {unitOptions.map((unit) => (
                     <option key={unit} value={unit}>
                       {unit}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="Pack size">
-                <input
-                  className={inputClass}
-                  onChange={(event) => update("packSize", event.target.value)}
-                  placeholder="60 capsules"
-                  value={form.packSize}
-                />
-              </Field>
-              <Field className="sm:col-span-2 lg:col-span-2" label="Serving size">
-                <input
-                  className={inputClass}
-                  onChange={(event) => update("servingSize", event.target.value)}
-                  placeholder="1 capsule daily"
-                  value={form.servingSize}
-                />
-              </Field>
             </div>
           </Section>
 
           <Section
-            title="Offer & promotions"
+            title="Pharmaceutical specs (ঔষধের তথ্য)"
+            subtitle="Strength is one field (e.g. 500 mg). Pack size stays separate (e.g. 10 Tablets, 100 ml)."
+          >
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label="Dosage form (ডোজ ফর্ম)">
+                <select
+                  className={inputClass}
+                  onChange={(event) => update("dosageForm", event.target.value)}
+                  value={form.dosageForm}
+                >
+                  <option value="">Select dosage form</option>
+                  {DOSAGE_FORMS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                className="sm:col-span-2 lg:col-span-2"
+                helper="Write the full strength in one field (Arogga / Lazz style)"
+                label="Strength (শক্তি / মাত্রা)"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className={cn(inputClass, "sm:flex-1")}
+                    list="strength-presets"
+                    onChange={(event) => update("strength", event.target.value)}
+                    placeholder="e.g. 500 mg, 250 mg/5 ml, 1%"
+                    value={form.strength}
+                  />
+                  <select
+                    aria-label="Append strength unit"
+                    className={cn(inputClass, "sm:w-40")}
+                    onChange={(event) => {
+                      const unit = event.target.value;
+                      update("strengthUnitHelper", unit);
+                      if (!unit) return;
+                      setForm((current) => {
+                        const base = current.strength.trim();
+                        // If empty or numeric-only, append selected unit
+                        const next =
+                          !base || /^[\d./]+$/.test(base)
+                            ? `${base || ""}${base ? " " : ""}${unit}`.trim()
+                            : base;
+                        return {
+                          ...current,
+                          strength: next,
+                          strengthUnitHelper: "",
+                        };
+                      });
+                    }}
+                    value={form.strengthUnitHelper}
+                  >
+                    <option value="">Unit…</option>
+                    {STRENGTH_UNITS.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <datalist id="strength-presets">
+                  {STRENGTH_EXAMPLES.map((item) => (
+                    <option key={item} value={item} />
+                  ))}
+                </datalist>
+              </Field>
+
+              <Field
+                helper="Pack quantity type — not strength"
+                label="Pack type (প্যাকের ধরন)"
+              >
+                <select
+                  className={inputClass}
+                  onChange={(event) => {
+                    const packType = event.target.value;
+                    setForm((current) => {
+                      const qty = Number(current.quantityPerPack || 0);
+                      const suggested =
+                        qty > 0 && packType
+                          ? buildPackSizeLabel(qty, packType)
+                          : current.packSize;
+                      return {
+                        ...current,
+                        packType,
+                        packSize: suggested || current.packSize,
+                      };
+                    });
+                  }}
+                  value={form.packType}
+                >
+                  <option value="">Select pack type</option>
+                  {PACK_TYPES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Quantity per pack (প্রতি প্যাকে পরিমাণ)">
+                <input
+                  className={inputClass}
+                  min={1}
+                  onChange={(event) => {
+                    const quantityPerPack = event.target.value;
+                    setForm((current) => {
+                      const qty = Number(quantityPerPack || 0);
+                      const suggested =
+                        qty > 0 && current.packType
+                          ? buildPackSizeLabel(qty, current.packType)
+                          : current.packSize;
+                      return {
+                        ...current,
+                        quantityPerPack,
+                        packSize: suggested || current.packSize,
+                      };
+                    });
+                  }}
+                  placeholder="e.g. 10, 30, 100"
+                  type="number"
+                  value={form.quantityPerPack}
+                />
+              </Field>
+
+              <Field
+                className="sm:col-span-2"
+                helper="Separate from strength — e.g. 10 Tablets, 100 ml, 30 Capsules"
+                label="Pack size (প্যাক সাইজ)"
+              >
+                <input
+                  className={inputClass}
+                  list="pack-size-presets"
+                  onChange={(event) => update("packSize", event.target.value)}
+                  placeholder="e.g. 10 Tablets, 100 ml, 30 Capsules"
+                  value={form.packSize}
+                />
+                <datalist id="pack-size-presets">
+                  {PACK_SIZE_PRESETS.map((item) => (
+                    <option key={item} value={item} />
+                  ))}
+                </datalist>
+              </Field>
+
+              <Field label="Route of administration (প্রয়োগের পথ)">
+                <select
+                  className={inputClass}
+                  onChange={(event) => update("routeOfAdmin", event.target.value)}
+                  value={form.routeOfAdmin}
+                >
+                  <option value="">Select route</option>
+                  {ROUTES_OF_ADMINISTRATION.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.value}
+                    </option>
+                  ))}
+                  {form.routeOfAdmin &&
+                  !ROUTES_OF_ADMINISTRATION.some((item) => item.value === form.routeOfAdmin) ? (
+                    <option value={form.routeOfAdmin}>{form.routeOfAdmin}</option>
+                  ) : null}
+                </select>
+              </Field>
+
+              <Field label="Generic / composition name (জেনেরিক নাম)">
+                <input
+                  className={inputClass}
+                  onChange={(event) => update("genericName", event.target.value)}
+                  placeholder="e.g. Paracetamol, Omega-3"
+                  value={form.genericName}
+                />
+              </Field>
+
+              <Field label="Serving / dose guidance (সেবনবিধি)">
+                <input
+                  className={inputClass}
+                  onChange={(event) => update("servingSize", event.target.value)}
+                  placeholder="1 capsule daily after meal"
+                  value={form.servingSize}
+                />
+              </Field>
+
+              <div className="sm:col-span-2 lg:col-span-3">
+                <ToggleRow
+                  checked={form.prescriptionRequired}
+                  description="Show a prescription-required notice on the storefront product page"
+                  label="Prescription required (প্রেসক্রিপশন প্রয়োজন)"
+                  onChange={(value) => update("prescriptionRequired", value)}
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title="Offer & promotions (অফার ও প্রমোশন)"
             subtitle="Limited-time deals shown on storefront cards and product pages."
           >
             <div className="space-y-4">
               <ToggleRow
                 checked={form.offerEnabled}
                 description="Enable a campaign price or discount badge for this product"
-                label="Enable offer"
+                label="Enable offer (অফার চালু করুন)"
                 onChange={(value) => update("offerEnabled", value)}
               />
 
               {form.offerEnabled ? (
                 <div className="grid gap-4 rounded-2xl border border-brand-green-100 bg-brand-green-100/30 p-4 sm:grid-cols-2">
-                  <Field label="Offer label *">
+                  <Field label="Offer label (অফার লেবেল) *">
                     <input
                       className={inputClass}
                       onChange={(event) => update("offerLabel", event.target.value)}
@@ -683,7 +916,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                     />
                   </Field>
 
-                  <Field label="Offer badge">
+                  <Field label="Offer badge (অফার ব্যাজ)">
                     <select
                       className={inputClass}
                       onChange={(event) =>
@@ -701,7 +934,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                     </select>
                   </Field>
 
-                  <Field helper="Auto-calculates offer price if left blank" label="Discount %">
+                  <Field helper="Auto-calculates offer price if left blank" label="Discount % (ছাড় %)">
                     <input
                       className={inputClass}
                       max={90}
@@ -718,7 +951,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                         ? `Preview offer price: ৳ ${offerPreview.offerPrice.toLocaleString("en-BD")}`
                         : undefined
                     }
-                    label="Offer price (৳)"
+                    label="Offer price (অফার মূল্য) (৳)"
                   >
                     <input
                       className={inputClass}
@@ -730,7 +963,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                     />
                   </Field>
 
-                  <Field label="Offer starts">
+                  <Field label="Offer starts (অফার শুরু)">
                     <input
                       className={inputClass}
                       onChange={(event) => update("offerStartsAt", event.target.value)}
@@ -739,7 +972,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                     />
                   </Field>
 
-                  <Field label="Offer ends">
+                  <Field label="Offer ends (অফার শেষ)">
                     <input
                       className={inputClass}
                       onChange={(event) => update("offerEndsAt", event.target.value)}
@@ -770,9 +1003,9 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
             </div>
           </Section>
 
-          <Section title="Product details" subtitle="Copy shown on PDP and search snippets.">
+          <Section title="Product details (পণ্যের বিবরণ)" subtitle="Copy shown on PDP and search snippets.">
             <div className="grid gap-4">
-              <Field label="Short description *">
+              <Field label="Short description (সংক্ষিপ্ত বিবরণ) *">
                 <input
                   className={inputClass}
                   maxLength={140}
@@ -781,7 +1014,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.shortDescription}
                 />
               </Field>
-              <Field label="Full description *">
+              <Field label="Full description (সম্পূর্ণ বিবরণ) *">
                 <textarea
                   className={cn(inputClass, "min-h-[120px] py-2.5")}
                   onChange={(event) => update("description", event.target.value)}
@@ -789,7 +1022,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.description}
                 />
               </Field>
-              <Field label="Description (Bangla)">
+              <Field label="Description Bangla (বিবরণ বাংলা)">
                 <textarea
                   className={cn(inputClass, "min-h-[100px] py-2.5 font-bangla")}
                   onChange={(event) => update("descriptionBn", event.target.value)}
@@ -797,7 +1030,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.descriptionBn}
                 />
               </Field>
-              <Field label="Ingredients">
+              <Field label="Ingredients (উপাদান)">
                 <textarea
                   className={cn(inputClass, "min-h-[90px] py-2.5")}
                   onChange={(event) => update("ingredients", event.target.value)}
@@ -807,7 +1040,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Usage instructions">
+                <Field label="Usage instructions (ব্যবহারবিধি)">
                   <textarea
                     className={cn(inputClass, "min-h-[90px] py-2.5")}
                     onChange={(event) => update("usageInstructions", event.target.value)}
@@ -815,7 +1048,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                     value={form.usageInstructions}
                   />
                 </Field>
-                <Field label="Warnings">
+                <Field label="Warnings (সতর্কতা)">
                   <textarea
                     className={cn(inputClass, "min-h-[90px] py-2.5")}
                     onChange={(event) => update("warnings", event.target.value)}
@@ -828,7 +1061,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
           </Section>
 
           <Section
-            title="Media"
+            title="Media (মিডিয়া)"
             subtitle="Upload product photos. Saved to local storage for now; Cloudinary comes later."
           >
             <input
@@ -942,9 +1175,9 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
             )}
           </Section>
 
-          <Section title="SEO" subtitle="Search preview metadata for product pages.">
+          <Section title="SEO (এসইও)" subtitle="Search preview metadata for product pages.">
             <div className="grid gap-4">
-              <Field label="Meta title">
+              <Field label="Meta title (মেটা টাইটেল)">
                 <input
                   className={inputClass}
                   maxLength={70}
@@ -952,7 +1185,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   value={form.metaTitle}
                 />
               </Field>
-              <Field label="Meta description">
+              <Field label="Meta description (মেটা বিবরণ)">
                 <textarea
                   className={cn(inputClass, "min-h-[90px] py-2.5")}
                   maxLength={160}
@@ -978,10 +1211,12 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
         </div>
 
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-          <Section title="Visibility" subtitle="Publish controls">
+          <Section title="Visibility (দৃশ্যমানতা)" subtitle="Publish controls">
             <div className="space-y-4">
               <div>
-                <p className="mb-2 text-sm font-medium text-neutral-700">Status</p>
+                <p className="mb-2 text-sm font-medium text-neutral-700">
+                  Status (স্ট্যাটাস)
+                </p>
                 <div className="grid grid-cols-3 gap-2">
                   {(["Draft", "Active", "Archived"] as ProductStatus[]).map((status) => (
                     <button
@@ -1004,26 +1239,26 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
               <ToggleRow
                 checked={form.featured}
                 description="Show in featured homepage modules"
-                label="Featured product"
+                label="Featured product (ফিচার্ড পণ্য)"
                 onChange={(value) => update("featured", value)}
               />
             </div>
           </Section>
 
-          <Section title="Trust signals" subtitle="Clinical credibility badges">
+          <Section title="Trust signals (বিশ্বস্ততার সংকেত)" subtitle="Clinical credibility badges">
             <div className="space-y-3">
               <ToggleRow
                 checked={form.labTested}
                 description="Show lab-tested badge"
                 icon={FlaskConical}
-                label="Lab tested"
+                label="Lab tested (ল্যাব টেস্টেড)"
                 onChange={(value) => update("labTested", value)}
               />
               <ToggleRow
                 checked={form.doctorRecommended}
                 description="Doctor-recommended highlight"
                 icon={Stethoscope}
-                label="Doctor recommended"
+                label="Doctor recommended (ডাক্তার প্রস্তাবিত)"
                 onChange={(value) => update("doctorRecommended", value)}
               />
               <div className="rounded-xl border border-brand-green-100 bg-brand-green-100/50 px-3 py-3 text-xs leading-5 text-brand-green-900">
@@ -1032,7 +1267,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
             </div>
           </Section>
 
-          <Section title="Tags" subtitle="Filtering & search helpers">
+          <Section title="Tags (ট্যাগ)" subtitle="Filtering & search helpers">
             <div className="flex gap-2">
               <input
                 className={inputClass}

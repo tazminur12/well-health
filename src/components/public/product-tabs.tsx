@@ -11,7 +11,7 @@ type ProductTabsProps = {
   specs: Array<{ label: string; value: string }>;
 };
 
-const tabs = ["Description", "Ingredients & Use", "Shipping"] as const;
+const tabs = ["Description", "Specifications", "Ingredients & Use", "Shipping"] as const;
 
 export function ProductTabs({
   description,
@@ -51,31 +51,38 @@ export function ProductTabs({
 
       <div className="p-6 sm:p-8">
         {activeTab === "Description" ? (
-          <div className="space-y-8">
-            <div className="space-y-4 leading-relaxed text-neutral-700">
-              {description
-                .split(/\n\n+/)
-                .filter(Boolean)
-                .map((paragraph) => (
-                  <p key={paragraph.slice(0, 40)}>{paragraph}</p>
-                ))}
-            </div>
+          <div className="space-y-4 leading-relaxed text-neutral-700">
+            {description
+              .split(/\n\n+/)
+              .filter(Boolean)
+              .map((paragraph) => (
+                <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+              ))}
+          </div>
+        ) : null}
 
+        {activeTab === "Specifications" ? (
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-500">
+              Pharmaceutical specs (ঔষধের তথ্য) for this product.
+            </p>
             {specs.length > 0 ? (
               <div className="overflow-hidden rounded-xl border border-neutral-200">
                 {specs.map((spec, index) => (
                   <div
                     key={spec.label}
-                    className={`grid gap-4 px-4 py-4 sm:grid-cols-[220px_minmax(0,1fr)] ${
+                    className={`grid gap-4 px-4 py-4 sm:grid-cols-[240px_minmax(0,1fr)] ${
                       index !== specs.length - 1 ? "border-b border-neutral-200" : ""
                     }`}
                   >
                     <p className="text-sm font-medium text-neutral-900">{spec.label}</p>
-                    <p className="text-sm leading-6 text-neutral-500">{spec.value}</p>
+                    <p className="text-sm leading-6 text-neutral-600">{spec.value}</p>
                   </div>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <p className="text-sm text-neutral-500">No specifications listed yet.</p>
+            )}
           </div>
         ) : null}
 

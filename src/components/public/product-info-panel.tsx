@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { WishlistButton } from "@/components/public/wishlist-button";
+import { formatProductStrength } from "@/components/admin/products-data";
 import { showSuccess } from "@/lib/alerts";
 import { formatPrice } from "@/lib/format-price";
 import { getDisplayCompareAt } from "@/lib/products/public-mapper";
@@ -33,6 +34,42 @@ export function ProductInfoPanel({ product }: ProductInfoPanelProps) {
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const compareAt = getDisplayCompareAt(product);
+  const strengthLabel = formatProductStrength(product.strength, product.strengthUnit);
+
+  const pharmaSpecs = [
+    product.genericName
+      ? { label: "Generic (জেনেরিক)", value: product.genericName }
+      : null,
+    product.dosageForm
+      ? { label: "Dosage form (ডোজ ফর্ম)", value: product.dosageForm }
+      : null,
+    strengthLabel
+      ? { label: "Strength (শক্তি)", value: strengthLabel }
+      : null,
+    product.packSize
+      ? { label: "Pack size (প্যাক সাইজ)", value: product.packSize }
+      : null,
+    product.quantityPerPack
+      ? { label: "Qty / pack (পরিমাণ)", value: String(product.quantityPerPack) }
+      : null,
+    product.unit
+      ? { label: "Unit (ইউনিট)", value: product.unit }
+      : null,
+    product.routeOfAdmin
+      ? { label: "Route (প্রয়োগের পথ)", value: product.routeOfAdmin }
+      : null,
+    product.servingSize
+      ? { label: "Dose (সেবনবিধি)", value: product.servingSize }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+
+  const metaBits = [
+    product.brand,
+    product.dosageForm,
+    strengthLabel,
+    product.unit,
+    product.packSize,
+  ].filter(Boolean);
 
   const stockTone =
     product.stockBucket === "Out of Stock"
@@ -164,10 +201,7 @@ export function ProductInfoPanel({ product }: ProductInfoPanelProps) {
             </span>
           </span>
           <span className="text-neutral-300">·</span>
-          <span className="text-neutral-500">
-            {product.brand} · {product.unit}
-            {product.packSize ? ` · ${product.packSize}` : ""}
-          </span>
+          <span className="text-neutral-500">{metaBits.join(" · ")}</span>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -183,7 +217,39 @@ export function ProductInfoPanel({ product }: ProductInfoPanelProps) {
               Doctor recommended
             </span>
           ) : null}
+          {product.prescriptionRequired ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Prescription required
+            </span>
+          ) : null}
+          {product.routeOfAdmin ? (
+            <span className="inline-flex items-center rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-medium text-neutral-700">
+              {product.routeOfAdmin}
+            </span>
+          ) : null}
         </div>
+
+        {pharmaSpecs.length > 0 ? (
+          <div className="overflow-hidden rounded-2xl border border-brand-green-100 bg-gradient-to-br from-[#E8F5EE]/60 via-white to-[#F7F8F9]">
+            <div className="border-b border-brand-green-100/80 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-green-700">
+                Pharmaceutical specs (ঔষধের তথ্য)
+              </p>
+            </div>
+            <dl className="grid sm:grid-cols-2">
+              {pharmaSpecs.map((spec) => (
+                <div
+                  key={spec.label}
+                  className="border-b border-brand-green-100/70 px-4 py-3 last:border-b-0 sm:odd:border-r sm:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+                >
+                  <dt className="text-[11px] font-medium text-neutral-500">{spec.label}</dt>
+                  <dd className="mt-1 text-sm font-semibold text-neutral-900">{spec.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : null}
 
         <div className="border-t border-neutral-200" />
 

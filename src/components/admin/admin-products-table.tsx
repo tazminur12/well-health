@@ -270,8 +270,8 @@ export function AdminProductsTable({
                         <Link
                           aria-label={`View ${product.name}`}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
-                          href={`/admin/products/${product.id}/edit`}
-                          title="View / Edit"
+                          href={`/admin/products/${product.id}`}
+                          title="View details"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>

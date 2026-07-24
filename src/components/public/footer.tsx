@@ -26,7 +26,8 @@ import { cn } from "@/lib/utils";
 
 const exploreLinks = [
   { label: "Home", href: "/" },
-  { label: "Shop all", href: "/shop" },
+  { label: "Shop", href: "/shop" },
+  { label: "Product List", href: "/product-list" },
   { label: "Blog", href: "/blog" },
   { label: "About us", href: "/about" },
   { label: "Become a distributor", href: "/distributor" },

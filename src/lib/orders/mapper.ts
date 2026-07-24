@@ -8,6 +8,7 @@ import type {
 } from "@prisma/client";
 
 import type { AdminOrder, AdminOrderItem } from "@/lib/orders/schemas";
+import { buildSteadfastTrackingUrl } from "@/lib/steadfast/display";
 
 type OrderItemWithProduct = OrderItem & {
   product?: Pick<Product, "sku"> | null;
@@ -59,6 +60,16 @@ export function mapOrderToAdmin(order: OrderWithItems): AdminOrder {
     status: order.status as OrderStatus,
     notes: order.notes,
     couponCode: order.couponCode,
+    steadfastConsignmentId: order.steadfastConsignmentId,
+    steadfastInvoice: order.steadfastInvoice,
+    steadfastTrackingCode: order.steadfastTrackingCode,
+    steadfastStatus: order.steadfastStatus,
+    steadfastCodAmount:
+      order.steadfastCodAmount != null ? decimalToNumber(order.steadfastCodAmount) : null,
+    steadfastSyncedAt: order.steadfastSyncedAt?.toISOString() ?? null,
+    steadfastTrackingUrl: order.steadfastTrackingCode
+      ? buildSteadfastTrackingUrl(order.steadfastTrackingCode)
+      : null,
     itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
