@@ -38,7 +38,7 @@ export const STORE_SETTINGS_KEY = "store_settings";
 export const defaultStoreSettings: StoreSettings = {
   storeName: "Well Health Trade International",
   tagline: "Better Health, Better Life",
-  supportEmail: "info@wellhealthint.com",
+  supportEmail: "info@wellhealthtradeinternational.com",
   supportPhone: "+880 1906 056 948",
   whatsapp: "+8801906056948",
   addressLine1: "House #2, Road #2, Mohammadpur",

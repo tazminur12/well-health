@@ -10,7 +10,7 @@ type CTABannerProps = {
   href?: string;
   buttonClassName?: string;
   buttonIcon?: ReactNode;
-  /** `brand` = solid dark green. `soft` = light cream/green gradient. */
+  /** `brand` = solid dark green. `soft` = warm cream/gold (contrasts footer green). */
   variant?: "brand" | "soft";
 };
 
@@ -36,7 +36,7 @@ export function CTABanner({
       className={cn(
         "relative overflow-hidden py-16 sm:py-20 lg:py-24",
         isSoft
-          ? "border-t border-[#E8DFD0]/80 bg-gradient-to-br from-[#F7F3EA] via-[#F0F7F3] to-[#E8F5EE]"
+          ? "border-y border-[#E6DCC8] bg-gradient-to-br from-[#FBF7F0] via-[#F5EFE3] to-[#EDE4D4]"
           : "bg-brand-green-900"
       )}
     >
@@ -44,11 +44,11 @@ export function CTABanner({
         <>
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(201,162,75,0.14),_transparent_42%),radial-gradient(ellipse_at_bottom_left,_rgba(22,135,93,0.1),_transparent_45%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(201,162,75,0.22),_transparent_45%),radial-gradient(ellipse_at_bottom_left,_rgba(201,162,75,0.1),_transparent_50%)]"
           />
           <div
             aria-hidden
-            className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#C9A24B] via-[#16875D] to-[#0B4D3A]"
+            className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#C9A24B] via-[#E0C378] to-[#A8843A]"
           />
         </>
       ) : null}
@@ -56,8 +56,8 @@ export function CTABanner({
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           {isSoft ? (
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-green-600">
-              Quick support
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#A8843A]">
+              Next step
             </p>
           ) : null}
           <h2

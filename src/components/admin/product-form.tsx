@@ -1200,7 +1200,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                   {form.metaTitle || form.name || "Product title"}
                 </p>
                 <p className="text-xs text-brand-green-600">
-                  wellhealthint.com/shop/{form.slug || "product-slug"}
+                  wellhealthtradeinternational.com/shop/{form.slug || "product-slug"}
                 </p>
                 <p className="mt-1 text-sm text-neutral-600">
                   {form.metaDescription || form.shortDescription || "Meta description appears here."}

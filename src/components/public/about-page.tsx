@@ -9,7 +9,6 @@ import {
   FlaskConical,
   HeartHandshake,
   Leaf,
-  Quote,
   ShieldCheck,
   Sparkles,
   Target,
@@ -19,7 +18,7 @@ import {
 import { CTABanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
 import { TrustBadges } from "@/components/public/trust-badges";
-import { getPublicAboutHome } from "@/lib/content/public-queries";
+import { getPublicAboutHome, getPublicTrustBadges } from "@/lib/content/public-queries";
 import { cn } from "@/lib/utils";
 
 const values = [
@@ -141,6 +140,7 @@ const companyTimeline = [
   },
 ];
 
+/* Team data — used by commented Team section
 const team = [
   {
     name: "Mst. Ayesha Rahman",
@@ -159,9 +159,13 @@ function initials(name: string) {
   }
   return name.slice(0, 2).toUpperCase();
 }
+*/
 
 export async function AboutPageContent() {
-  const about = await getPublicAboutHome();
+  const [about, trustBadges] = await Promise.all([
+    getPublicAboutHome(),
+    getPublicTrustBadges(),
+  ]);
 
   return (
     <div className="bg-[#F7F8F9] text-neutral-900">
@@ -538,7 +542,7 @@ export async function AboutPageContent() {
         </div>
       </section>
 
-      {/* Managing Director message */}
+      {/* Managing Director message — temporarily hidden
       <section
         aria-labelledby="md-message-heading"
         className="relative overflow-hidden border-y border-brand-green-100/70 bg-white py-16 sm:py-20 lg:py-24"
@@ -617,6 +621,7 @@ export async function AboutPageContent() {
           </article>
         </div>
       </section>
+      */}
 
       {/* Company timeline */}
       <section
@@ -690,21 +695,29 @@ export async function AboutPageContent() {
       </section>
 
       {/* Trust */}
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-green-600">
+      <section className="relative overflow-hidden bg-[#F7F8F9] py-16 sm:py-20 lg:py-24">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(201,162,75,0.08),_transparent_50%)]"
+        />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#A8843A]">
               Assurance
             </p>
-            <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-neutral-900">
+            <h2 className="mt-3 font-heading text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
               Signals you can feel
             </h2>
+            <p className="mt-4 text-base leading-7 text-neutral-500">
+              Clinical trust marks that sit behind every bottle — quality, certification, and care
+              you can rely on.
+            </p>
           </div>
-          <TrustBadges />
+          <TrustBadges badges={trustBadges} embedded variant="premium" />
         </div>
       </section>
 
-      {/* Team */}
+      {/* Team — temporarily hidden
       <section className="relative overflow-hidden py-16 sm:py-20 lg:py-24">
         <div
           aria-hidden
@@ -751,12 +764,16 @@ export async function AboutPageContent() {
           </div>
         </div>
       </section>
+      */}
 
-      <CTABanner
-        buttonLabel="Shop Well Health"
-        subtitle="Discover clinically trusted supplements crafted for everyday wellbeing — premium quality, delivered with care."
-        title="Begin your wellness journey"
-      />
+      <div className="pb-10 sm:pb-14 lg:pb-16">
+        <CTABanner
+          buttonLabel="Shop Well Health"
+          subtitle="Discover clinically trusted supplements crafted for everyday wellbeing — premium quality, delivered with care."
+          title="Begin your wellness journey"
+          variant="soft"
+        />
+      </div>
     </div>
   );
 }

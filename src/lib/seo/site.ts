@@ -5,8 +5,11 @@ import { BRAND_NAME } from "@/lib/branding";
 /** Public site origin — used for canonical URLs and JSON-LD. */
 export function getSiteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (raw) return raw.replace(/\/$/, "");
-  return "https://wellhealthint.com";
+  if (raw) {
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    return withProtocol.replace(/\/$/, "");
+  }
+  return "https://wellhealthtradeinternational.com";
 }
 
 export function buildCanonicalUrl(path: string): string {

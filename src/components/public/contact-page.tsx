@@ -212,19 +212,21 @@ export async function ContactPageContent() {
 
       <FAQAccordion faqs={faqs} />
 
-      <CTABanner
-        buttonClassName={
-          whatsappDigits
-            ? "bg-[#25D366] text-white shadow-md hover:bg-[#1ebe57] hover:shadow-lg"
-            : "bg-brand-green-900 text-white shadow-md hover:bg-brand-green-600 hover:shadow-lg"
-        }
-        buttonIcon={<MessageCircle className="h-4 w-4" />}
-        buttonLabel={whatsappDigits ? "WhatsApp us" : "Send a message"}
-        href={whatsappHref}
-        subtitle="Still unsure? Message us directly — we’re happy to guide you on products, orders, and delivery."
-        title="Need a quicker reply?"
-        variant="soft"
-      />
+      <div className="pb-10 sm:pb-14 lg:pb-16">
+        <CTABanner
+          buttonClassName={
+            whatsappDigits
+              ? "bg-[#25D366] text-white shadow-md hover:bg-[#1ebe57] hover:shadow-lg"
+              : "bg-brand-green-900 text-white shadow-md hover:bg-brand-green-600 hover:shadow-lg"
+          }
+          buttonIcon={<MessageCircle className="h-4 w-4" />}
+          buttonLabel={whatsappDigits ? "WhatsApp us" : "Send a message"}
+          href={whatsappHref}
+          subtitle="Still unsure? Message us directly — we’re happy to guide you on products, orders, and delivery."
+          title="Need a quicker reply?"
+          variant="soft"
+        />
+      </div>
     </div>
   );
 }
