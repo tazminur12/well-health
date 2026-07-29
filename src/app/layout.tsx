@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Hind_Siliguri, Inter, Sora } from "next/font/google";
 
 import { Providers } from "@/components/providers";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+// import { ChatWidget } from "@/components/chat/ChatWidget";
 import { getPublicSiteAssets } from "@/lib/content/public-queries";
 import { buildRootMetadata } from "@/lib/seo/root-metadata";
 import { buildSiteStructuredData } from "@/lib/seo/site-structured-data";
@@ -70,7 +70,8 @@ export default async function RootLayout({
         />
         <Providers>
           {children}
-          <ChatWidget />
+          {/* ChatWidget disabled temporarily — avoids DB calls while Hostinger env is fixed */}
+          {/* <ChatWidget /> */}
         </Providers>
       </body>
     </html>
