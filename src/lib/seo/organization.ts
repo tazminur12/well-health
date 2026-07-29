@@ -15,7 +15,12 @@ export function buildOrganizationSchema({ settings, logoUrl }: OrganizationSchem
     "@type": "Organization",
     "@id": `${siteUrl}/#organization`,
     name: settings.storeName || BRAND_NAME,
-    alternateName: ["Well Health", "Well Health Trade"],
+    alternateName: [
+      "Well Health",
+      "Well Health Trade",
+      "ওয়েল হেলথ",
+      "ওয়েল হেলথ ট্রেড ইন্টারন্যাশনাল",
+    ],
     url: siteUrl,
     logo: {
       "@type": "ImageObject",
@@ -24,10 +29,11 @@ export function buildOrganizationSchema({ settings, logoUrl }: OrganizationSchem
     image: logoUrl,
     description:
       settings.seoDescription ||
-      "Premium health supplements with clinical quality and nature-backed formulations for everyday wellbeing in Bangladesh.",
+      "Premium health supplements with clinical quality and nature-backed formulations for everyday wellbeing in Bangladesh. বাংলাদেশে প্রিমিয়াম স্বাস্থ্য সাপ্লিমেন্ট — ভিটামিন, ওমেগা ও ক্লিনিক্যাল কোয়ালিটির ফর্মুলা।",
     slogan: settings.tagline || BRAND_TAGLINE,
     email: settings.supportEmail,
     telephone: settings.supportPhone,
+    knowsLanguage: ["en", "bn"],
     address: {
       "@type": "PostalAddress",
       streetAddress: [settings.addressLine1, settings.addressLine2].filter(Boolean).join(", "),
@@ -57,7 +63,7 @@ export function buildWebSiteSchema({ settings }: { settings: StoreSettings }) {
     name: settings.storeName || BRAND_NAME,
     description: settings.seoDescription || settings.tagline || BRAND_TAGLINE,
     publisher: { "@id": `${siteUrl}/#organization` },
-    inLanguage: "en-BD",
+    inLanguage: ["en-BD", "bn-BD"],
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -95,6 +101,7 @@ export function buildLocalBusinessSchema({
     openingHours: settings.workingHours,
     priceRange: "৳৳",
     areaServed: "Bangladesh",
+    availableLanguage: ["English", "Bengali"],
     parentOrganization: { "@id": `${siteUrl}/#organization` },
   };
 }

@@ -3,21 +3,12 @@ import type { Metadata } from "next";
 import { BRAND_LOGO, BRAND_NAME, BRAND_TAGLINE } from "@/lib/branding";
 import type { StoreSettings } from "@/lib/settings/schemas";
 
+import {
+  DEFAULT_SEO_DESCRIPTION,
+  ROOT_SEO_KEYWORDS,
+} from "./keywords";
 import { resolveLogoUrl } from "./organization";
 import { buildCanonicalUrl, getSiteUrl } from "./site";
-
-const ROOT_KEYWORDS = [
-  "Well Health Trade International",
-  "Well Health supplements",
-  "health supplements Bangladesh",
-  "vitamin supplements Dhaka",
-  "buy supplements online Bangladesh",
-  "clinical premium supplements",
-  "natural wellness products BD",
-  "GMP health supplements",
-  "herbal supplements Bangladesh",
-  "wellness brand Bangladesh",
-];
 
 type RootMetadataInput = {
   settings: StoreSettings;
@@ -29,9 +20,7 @@ export function buildRootMetadata({ settings, ogImage }: RootMetadataInput): Met
   const siteUrl = getSiteUrl();
   const storeName = settings.storeName || BRAND_NAME;
   const title = settings.seoTitle?.trim() || storeName;
-  const description =
-    settings.seoDescription?.trim() ||
-    "Shop premium health supplements from Well Health Trade International — clinical quality, science-backed formulas, and trusted delivery across Bangladesh.";
+  const description = settings.seoDescription?.trim() || DEFAULT_SEO_DESCRIPTION;
   const image = resolveLogoUrl(ogImage);
   const tagline = settings.tagline?.trim() || BRAND_TAGLINE;
 
@@ -42,13 +31,18 @@ export function buildRootMetadata({ settings, ogImage }: RootMetadataInput): Met
       template: `%s | ${storeName}`,
     },
     description,
-    keywords: ROOT_KEYWORDS,
+    keywords: [...ROOT_SEO_KEYWORDS],
     applicationName: storeName,
     creator: storeName,
     publisher: storeName,
     category: "Health & Wellness",
     alternates: {
       canonical: siteUrl,
+      languages: {
+        "en-BD": siteUrl,
+        "bn-BD": siteUrl,
+        "x-default": siteUrl,
+      },
     },
     icons: {
       icon: [{ url: BRAND_LOGO.favicon, type: "image/png", sizes: "32x32" }],
@@ -59,6 +53,7 @@ export function buildRootMetadata({ settings, ogImage }: RootMetadataInput): Met
     openGraph: {
       type: "website",
       locale: "en_BD",
+      alternateLocale: ["bn_BD"],
       url: siteUrl,
       siteName: storeName,
       title,
@@ -94,9 +89,13 @@ export function buildRootMetadata({ settings, ogImage }: RootMetadataInput): Met
       email: true,
       address: true,
     },
+    verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+      : undefined,
     other: {
       "geo.region": "BD",
       "geo.placename": settings.city || "Dhaka",
+      language: "English, Bangla",
     },
   };
 }

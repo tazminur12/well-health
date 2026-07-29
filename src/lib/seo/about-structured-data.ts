@@ -36,7 +36,7 @@ export function buildAboutPageStructuredData({
         isPartOf: { "@id": `${siteUrl}/#website` },
         about: { "@id": `${siteUrl}/#organization` },
         primaryImageOfPage: logoUrl,
-        inLanguage: "en-BD",
+        inLanguage: ["en-BD", "bn-BD"],
       },
       buildWebSiteSchema({ settings }),
       {

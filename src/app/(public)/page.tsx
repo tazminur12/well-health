@@ -15,7 +15,7 @@ import {
   getPublicHeroSlides,
   getPublicTrustBadges,
 } from "@/lib/content/public-queries";
-import { SEO_KEYWORDS } from "@/lib/seo/keywords";
+import { DEFAULT_SEO_DESCRIPTION, SEO_KEYWORDS } from "@/lib/seo/keywords";
 import { getSeoAssets } from "@/lib/seo/page-assets";
 import { buildHomePageStructuredData } from "@/lib/seo/structured-data";
 import { buildPageMetadata } from "@/lib/seo/site";
@@ -25,10 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const { settings, ogImage } = await getSeoAssets();
 
   return buildPageMetadata({
-    title: settings.seoTitle || "Premium Health Supplements Bangladesh",
-    description:
-      settings.seoDescription ||
-      "Shop premium health supplements from Well Health Trade International — clinical quality, science-backed eye care, omega, brain health, and vitamin formulas with trusted delivery across Bangladesh.",
+    title: settings.seoTitle || "Premium Health Supplements Bangladesh | প্রিমিয়াম স্বাস্থ্য সাপ্লিমেন্ট",
+    description: settings.seoDescription || DEFAULT_SEO_DESCRIPTION,
     path: "/",
     keywords: [...SEO_KEYWORDS.home],
     ogImage,

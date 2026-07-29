@@ -59,7 +59,14 @@ export function buildPageMetadata({
     title: { absolute: fullTitle },
     description,
     keywords: keywords.length > 0 ? keywords : undefined,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+      languages: {
+        "en-BD": canonical,
+        "bn-BD": canonical,
+        "x-default": canonical,
+      },
+    },
     openGraph: {
       title: fullTitle,
       description,
@@ -67,6 +74,7 @@ export function buildPageMetadata({
       siteName: BRAND_NAME,
       type: ogType,
       locale: "en_BD",
+      alternateLocale: ["bn_BD"],
       images: [{ url: image, width: 1200, height: 630, alt: BRAND_NAME }],
     },
     twitter: {

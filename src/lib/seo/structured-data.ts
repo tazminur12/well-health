@@ -5,6 +5,7 @@ import type { PublicProduct } from "@/lib/products/public-types";
 import type { StoreSettings } from "@/lib/settings/schemas";
 
 import { buildBreadcrumbSchema, buildJsonLdGraph } from "./breadcrumbs";
+import { DEFAULT_SEO_DESCRIPTION } from "./keywords";
 import { resolveLogoUrl } from "./organization";
 import { buildCanonicalUrl, getSiteUrl } from "./site";
 
@@ -26,7 +27,7 @@ function buildWebPageSchema({ path, name, description }: WebPageSchemaInput) {
     description,
     isPartOf: { "@id": `${siteUrl}/#website` },
     about: { "@id": `${siteUrl}/#organization` },
-    inLanguage: "en-BD",
+    inLanguage: ["en-BD", "bn-BD"],
   };
 }
 
@@ -47,13 +48,11 @@ export function buildHomePageStructuredData({
       "@id": `${siteUrl}/#webpage`,
       url: siteUrl,
       name: settings.seoTitle || settings.storeName || BRAND_NAME,
-      description:
-        settings.seoDescription ||
-        "Shop premium health supplements from Well Health Trade International — clinical quality, science-backed formulas, and trusted delivery across Bangladesh.",
+      description: settings.seoDescription || DEFAULT_SEO_DESCRIPTION,
       isPartOf: { "@id": `${siteUrl}/#website` },
       about: { "@id": `${siteUrl}/#organization` },
       primaryImageOfPage: logoUrl,
-      inLanguage: "en-BD",
+      inLanguage: ["en-BD", "bn-BD"],
     },
     buildBreadcrumbSchema([{ name: "Home" }]),
   ];
@@ -92,7 +91,7 @@ export function buildShopPageStructuredData({
       description:
         "Browse clinically trusted eye care, brain health, omega, and vitamin supplements from Well Health Trade International.",
       isPartOf: { "@id": `${getSiteUrl()}/#website` },
-      inLanguage: "en-BD",
+      inLanguage: ["en-BD", "bn-BD"],
     },
     buildBreadcrumbSchema([
       { name: "Home", path: "/" },
@@ -164,7 +163,7 @@ export function buildContactPageStructuredData({ settings }: { settings: StoreSe
       description:
         "Contact Well Health Trade International for product questions, order support, and partnership enquiries across Bangladesh.",
       isPartOf: { "@id": `${getSiteUrl()}/#website` },
-      inLanguage: "en-BD",
+      inLanguage: ["en-BD", "bn-BD"],
     },
     buildBreadcrumbSchema([
       { name: "Home", path: "/" },
@@ -215,7 +214,7 @@ export function buildBlogListingStructuredData({ postCount }: { postCount: numbe
         "Evidence-minded wellness tips, supplement guides, and company updates from Well Health Trade International.",
       isPartOf: { "@id": `${getSiteUrl()}/#website` },
       blogPost: postCount,
-      inLanguage: "en-BD",
+      inLanguage: ["en-BD", "bn-BD"],
     },
     buildBreadcrumbSchema([
       { name: "Home", path: "/" },
@@ -251,7 +250,7 @@ export function buildBlogPostStructuredData(post: PublicBlogPost) {
         "@id": articleUrl,
       },
       articleSection: post.category,
-      inLanguage: "en-BD",
+      inLanguage: ["en-BD", "bn-BD"],
     },
     buildBreadcrumbSchema([
       { name: "Home", path: "/" },
