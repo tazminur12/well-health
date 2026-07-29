@@ -107,7 +107,18 @@ export function Navbar({ user = null }: NavbarProps) {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="min-w-0 shrink">
-            <BrandLogo priority size="md" variant="lockup" />
+            <BrandLogo
+              className="sm:hidden"
+              priority
+              size="md"
+              variant="mark"
+            />
+            <BrandLogo
+              className="hidden sm:inline-flex"
+              priority
+              size="md"
+              variant="lockup"
+            />
           </div>
 
           <nav className="hidden items-center gap-5 2xl:gap-7 xl:flex">

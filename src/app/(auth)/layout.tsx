@@ -13,9 +13,9 @@ const trustPoints = [
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#F7F8F9] lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="min-h-screen overflow-x-hidden bg-[#F7F8F9] lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       {/* Brand panel — desktop */}
-      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col">
+      <aside className="relative hidden min-h-screen min-w-0 overflow-hidden lg:flex lg:flex-col">
         <div className="absolute inset-0 bg-[linear-gradient(145deg,#0B4D3A_0%,#16875D_55%,#0B4D3A_100%)]" />
         <div
           aria-hidden
@@ -26,29 +26,29 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           }}
         />
 
-        <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
-          <BrandLogo size="lg" tone="dark" variant="full" />
+        <div className="relative z-10 flex min-h-screen flex-col justify-between gap-8 p-8 xl:p-12 2xl:p-14">
+          <BrandLogo size="md" tone="dark" variant="full" />
 
-          <div className="max-w-md space-y-8">
-            <div className="space-y-4">
+          <div className="w-full max-w-md space-y-5 xl:space-y-7">
+            <div className="space-y-3 xl:space-y-4">
               <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Clinical Premium
               </p>
-              <h1 className="font-heading text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
+              <h1 className="font-heading text-3xl font-bold leading-tight tracking-tight text-white xl:text-4xl 2xl:text-5xl">
                 Better Health,
                 <span className="block text-[#E8F5EE]">Better Life</span>
               </h1>
-              <p className="text-base leading-7 text-white/75">
+              <p className="text-sm leading-6 text-white/75 xl:text-base xl:leading-7">
                 Sign in to manage orders, wishlist, and personalized wellness recommendations.
               </p>
             </div>
 
-            <ul className="space-y-3">
+            <ul className="space-y-2 xl:space-y-3">
               {trustPoints.map((point) => (
                 <li
                   key={point}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/90 backdrop-blur-sm"
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/10 px-3.5 py-2.5 text-sm text-white/90 backdrop-blur-sm xl:px-4 xl:py-3"
                 >
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-[#C9A24B]" />
                   {point}
@@ -56,7 +56,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               ))}
             </ul>
 
-            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
+            <div className="relative hidden overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)] xl:block">
               <div className="relative aspect-[16/10]">
                 <Image
                   alt="Wellness supplements"
@@ -80,7 +80,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* Form panel */}
-      <section className="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-10 xl:px-16">
+      <section className="relative flex min-h-screen min-w-0 items-center justify-center px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(22,135,93,0.08),_transparent_45%)]"

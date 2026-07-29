@@ -12,20 +12,6 @@ import { loginAction } from "@/lib/auth/actions";
 import { showAuthError, showAuthSuccess } from "@/lib/auth/alerts";
 import { loginSchema, type LoginInput } from "@/lib/auth/schemas";
 
-/** Temporary demo accounts — remove before production. */
-const DEMO_ACCOUNTS = [
-  {
-    label: "Customer",
-    email: "customer@wellhealth.demo",
-    password: "Demo@1234",
-  },
-  {
-    label: "Admin",
-    email: "admin@wellhealth.demo",
-    password: "Demo@1234",
-  },
-] as const;
-
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,7 +25,6 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -66,11 +51,6 @@ function LoginForm() {
     );
   }, [deletedAccount]);
 
-  function fillDemo(email: string, password: string) {
-    setValue("email", email, { shouldValidate: true, shouldDirty: true });
-    setValue("password", password, { shouldValidate: true, shouldDirty: true });
-  }
-
   function onSubmit(values: LoginInput) {
     startTransition(async () => {
       try {
@@ -96,29 +76,6 @@ function LoginForm() {
         <p className="text-sm leading-6 text-neutral-500">
           Sign in to continue to your Well Health account.
         </p>
-      </div>
-
-      {/* TODO: remove demo login block before production */}
-      <div className="rounded-xl border border-dashed border-brand-green-600/30 bg-brand-green-100/50 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-green-900">
-          Demo login (temporary)
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {DEMO_ACCOUNTS.map((account) => (
-            <button
-              key={account.email}
-              className="rounded-lg border border-brand-green-600/20 bg-white px-3 py-2.5 text-left transition-colors duration-200 hover:border-brand-green-600 hover:bg-white active:bg-brand-green-100"
-              onClick={() => fillDemo(account.email, account.password)}
-              type="button"
-            >
-              <span className="block text-sm font-semibold text-neutral-900">{account.label}</span>
-              <span className="mt-0.5 block truncate text-[11px] text-neutral-500">
-                {account.email}
-              </span>
-              <span className="mt-0.5 block text-[11px] text-neutral-400">{account.password}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
