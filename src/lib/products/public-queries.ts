@@ -23,57 +23,24 @@ function mapRows(rows: ProductRow[]): PublicProduct[] {
 
 /** Active catalog products for the public storefront. */
 export const getActiveProducts = cache(async (): Promise<PublicProduct[]> => {
-  const rows = await prisma.product.findMany({
-    where: { status: ProductStatus.ACTIVE },
-    include: productInclude,
-    orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
-  });
-  return mapRows(rows as ProductRow[]);
+  try {
+    const rows = await prisma.product.findMany({
+      where: { status: ProductStatus.ACTIVE },
+      include: productInclude,
+      orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+    });
+    return mapRows(rows as ProductRow[]);
+  } catch {
+    return [];
+  }
 });
 
 export const getFeaturedProducts = cache(async (limit = 4): Promise<PublicProductCard[]> => {
-  const rows = (await prisma.product.findMany({
-    where: { status: ProductStatus.ACTIVE, featured: true },
-    include: productInclude,
-    orderBy: [{ updatedAt: "desc" }],
-    take: limit,
-  })) as ProductRow[];
-
-  if (rows.length < limit) {
-    const extra = (await prisma.product.findMany({
-      where: {
-        status: ProductStatus.ACTIVE,
-        id: { notIn: rows.map((row) => row.id) },
-      },
+  try {
+    const rows = (await prisma.product.findMany({
+      where: { status: ProductStatus.ACTIVE, featured: true },
       include: productInclude,
       orderBy: [{ updatedAt: "desc" }],
-      take: limit - rows.length,
-    })) as ProductRow[];
-    rows.push(...extra);
-  }
-
-  return mapRows(rows).map(toPublicProductCard);
-});
-
-export const getProductBySlug = cache(async (slug: string): Promise<PublicProduct | null> => {
-  const row = (await prisma.product.findFirst({
-    where: { slug, status: ProductStatus.ACTIVE },
-    include: productInclude,
-  })) as ProductRow | null;
-  if (!row) return null;
-  return mapAdminToPublic(mapProductToAdmin(row));
-});
-
-export const getRelatedProducts = cache(
-  async (productId: string, categoryName: string, limit = 4): Promise<PublicProductCard[]> => {
-    const rows = (await prisma.product.findMany({
-      where: {
-        status: ProductStatus.ACTIVE,
-        id: { not: productId },
-        category: { name: categoryName },
-      },
-      include: productInclude,
-      orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
       take: limit,
     })) as ProductRow[];
 
@@ -81,46 +48,103 @@ export const getRelatedProducts = cache(
       const extra = (await prisma.product.findMany({
         where: {
           status: ProductStatus.ACTIVE,
-          id: { notIn: [productId, ...rows.map((row) => row.id)] },
+          id: { notIn: rows.map((row) => row.id) },
         },
         include: productInclude,
-        orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+        orderBy: [{ updatedAt: "desc" }],
         take: limit - rows.length,
       })) as ProductRow[];
       rows.push(...extra);
     }
 
     return mapRows(rows).map(toPublicProductCard);
+  } catch {
+    return [];
+  }
+});
+
+export const getProductBySlug = cache(async (slug: string): Promise<PublicProduct | null> => {
+  try {
+    const row = (await prisma.product.findFirst({
+      where: { slug, status: ProductStatus.ACTIVE },
+      include: productInclude,
+    })) as ProductRow | null;
+    if (!row) return null;
+    return mapAdminToPublic(mapProductToAdmin(row));
+  } catch {
+    return null;
+  }
+});
+
+export const getRelatedProducts = cache(
+  async (productId: string, categoryName: string, limit = 4): Promise<PublicProductCard[]> => {
+    try {
+      const rows = (await prisma.product.findMany({
+        where: {
+          status: ProductStatus.ACTIVE,
+          id: { not: productId },
+          category: { name: categoryName },
+        },
+        include: productInclude,
+        orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+        take: limit,
+      })) as ProductRow[];
+
+      if (rows.length < limit) {
+        const extra = (await prisma.product.findMany({
+          where: {
+            status: ProductStatus.ACTIVE,
+            id: { notIn: [productId, ...rows.map((row) => row.id)] },
+          },
+          include: productInclude,
+          orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+          take: limit - rows.length,
+        })) as ProductRow[];
+        rows.push(...extra);
+      }
+
+      return mapRows(rows).map(toPublicProductCard);
+    } catch {
+      return [];
+    }
   }
 );
 
 export async function getActiveProductSlugs() {
-  const rows = await prisma.product.findMany({
-    where: { status: ProductStatus.ACTIVE },
-    select: { slug: true, updatedAt: true },
-  });
-  return rows;
+  try {
+    const rows = await prisma.product.findMany({
+      where: { status: ProductStatus.ACTIVE },
+      select: { slug: true, updatedAt: true },
+    });
+    return rows;
+  } catch {
+    return [];
+  }
 }
 
 /** Active categories that have at least one active product. */
 export const getShopCategories = cache(async (): Promise<PublicShopCategory[]> => {
-  const rows = await prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      _count: {
-        select: {
-          products: { where: { status: ProductStatus.ACTIVE } },
+  try {
+    const rows = await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        _count: {
+          select: {
+            products: { where: { status: ProductStatus.ACTIVE } },
+          },
         },
       },
-    },
-  });
+    });
 
-  return rows
-    .filter((row) => row._count.products > 0)
-    .map((row) => ({
-      name: row.name,
-      slug: row.slug,
-      productCount: row._count.products,
-    }));
+    return rows
+      .filter((row) => row._count.products > 0)
+      .map((row) => ({
+        name: row.name,
+        slug: row.slug,
+        productCount: row._count.products,
+      }));
+  } catch {
+    return [];
+  }
 });
