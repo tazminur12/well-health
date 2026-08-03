@@ -12,6 +12,7 @@ import {
   listStaffMembersAction,
   listStaffRolesAction,
   revokeStaffInviteAction,
+  updateStaffAccountAction,
   updateStaffRoleAction,
   updateStaffRolePermissionsAction,
 } from "@/lib/roles/actions";
@@ -19,6 +20,7 @@ import type {
   CreateStaffAccountInput,
   CreateStaffRoleInput,
   InviteStaffInput,
+  UpdateStaffAccountInput,
   UpdateStaffRoleInput,
   UpdateStaffRolePermissionsInput,
 } from "@/lib/roles/schemas";
@@ -117,6 +119,20 @@ export function useRoleMutations() {
     createAccount: useMutation({
       mutationFn: async (input: CreateStaffAccountInput) => {
         const result = await createStaffAccountAction(input);
+        if (result.error) throw new Error(result.error);
+        return result.data!;
+      },
+      onSuccess: invalidate,
+    }),
+    updateAccount: useMutation({
+      mutationFn: async ({
+        id,
+        input,
+      }: {
+        id: string;
+        input: UpdateStaffAccountInput;
+      }) => {
+        const result = await updateStaffAccountAction(id, input);
         if (result.error) throw new Error(result.error);
         return result.data!;
       },

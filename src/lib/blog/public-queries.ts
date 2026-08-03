@@ -155,6 +155,7 @@ export async function getRelatedBlogPosts(
   return [...sameCategory, ...extra].map(toPublicPost);
 }
 
-export function categoryToSlug(category: AdminBlogCategory) {
+export function categoryToSlug(category: AdminBlogCategory | string | null | undefined) {
+  if (!category) return "health-tips";
   return category.toLowerCase().replace(/\s+/g, "-");
 }

@@ -6,11 +6,13 @@ import {
   EyeOff,
   Loader2,
   Mail,
+  Pencil,
   Plus,
   Shield,
   Trash2,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
@@ -23,7 +25,7 @@ import {
   useStaffRoles,
 } from "@/hooks/use-admin-roles";
 import { confirmAdminAction, showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
-import type { AdminStaffRole } from "@/lib/roles/mapper";
+import type { AdminStaffMember, AdminStaffRole } from "@/lib/roles/mapper";
 import { cn } from "@/lib/utils";
 
 type TabId = "roles" | "members" | "invites";
@@ -311,12 +313,14 @@ function MembersTab({
 }) {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [editing, setEditing] = useState<AdminStaffMember | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     roleId: "",
     password: "",
+    status: "ACTIVE" as "ACTIVE" | "SUSPENDED",
   });
 
   const staffRoles = useMemo(
@@ -324,16 +328,45 @@ function MembersTab({
     [roles]
   );
   const selectedRoleId = form.roleId || staffRoles[0]?.id || "";
+  const isEditing = Boolean(editing);
+
+  function resetForm() {
+    setEditing(null);
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      roleId: "",
+      password: "",
+      status: "ACTIVE",
+    });
+    setShowPassword(false);
+  }
+
+  function startEdit(member: AdminStaffMember) {
+    setEditing(member);
+    setForm({
+      name: member.name === "Unnamed" ? "" : member.name,
+      email: member.email,
+      phone: member.phone === "—" ? "" : member.phone,
+      roleId: member.staffRole?.id || staffRoles[0]?.id || "",
+      password: "",
+      status: member.status === "Suspended" ? "SUSPENDED" : "ACTIVE",
+    });
+    setShowPassword(false);
+  }
 
   function handleCreate() {
     startTransition(async () => {
       try {
         await mutations.createAccount.mutateAsync({
-          ...form,
-          roleId: selectedRoleId,
+          name: form.name,
+          email: form.email,
           phone: form.phone || undefined,
+          roleId: selectedRoleId,
+          password: form.password,
         });
-        setForm({ name: "", email: "", phone: "", roleId: "", password: "" });
+        resetForm();
         await showAdminSuccess("Account created", "Staff member can sign in with this password.");
       } catch (error) {
         await showAdminError(
@@ -344,14 +377,55 @@ function MembersTab({
     });
   }
 
+  function handleUpdate() {
+    if (!editing) return;
+    startTransition(async () => {
+      try {
+        await mutations.updateAccount.mutateAsync({
+          id: editing.id,
+          input: {
+            name: form.name,
+            phone: form.phone || undefined,
+            roleId: selectedRoleId,
+            status: form.status,
+            password: form.password || undefined,
+          },
+        });
+        resetForm();
+        await showAdminSuccess("Account updated", "Team member details were saved.");
+      } catch (error) {
+        await showAdminError(
+          "Update failed",
+          error instanceof Error ? error.message : "Please try again."
+        );
+      }
+    });
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
       <section className="h-fit space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div>
-          <h2 className="font-heading text-lg font-bold text-neutral-900">Create account</h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Manually create a staff login with a temporary password.
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-heading text-lg font-bold text-neutral-900">
+              {isEditing ? "Edit account" : "Create account"}
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              {isEditing
+                ? "Update name, role, status, or set a new password."
+                : "Manually create a staff login with a temporary password."}
+            </p>
+          </div>
+          {isEditing ? (
+            <button
+              aria-label="Cancel edit"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+              onClick={resetForm}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-neutral-700">Full name</span>
@@ -364,11 +438,15 @@ function MembersTab({
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-neutral-700">Email</span>
           <input
-            className={inputClass}
+            className={cn(inputClass, isEditing && "bg-neutral-50 text-neutral-500")}
+            disabled={isEditing}
             onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
             type="email"
             value={form.email}
           />
+          {isEditing ? (
+            <span className="text-xs text-neutral-400">Email cannot be changed here.</span>
+          ) : null}
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-neutral-700">Phone</span>
@@ -392,14 +470,35 @@ function MembersTab({
             ))}
           </select>
         </label>
+        {isEditing ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-neutral-700">Status</span>
+            <select
+              className={inputClass}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  status: event.target.value as "ACTIVE" | "SUSPENDED",
+                }))
+              }
+              value={form.status}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </label>
+        ) : null}
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-neutral-700">Temporary password</span>
+          <span className="text-sm font-medium text-neutral-700">
+            {isEditing ? "New password (optional)" : "Temporary password"}
+          </span>
           <div className="relative">
             <input
               className={cn(inputClass, "pr-11")}
               onChange={(event) =>
                 setForm((current) => ({ ...current, password: event.target.value }))
               }
+              placeholder={isEditing ? "Leave blank to keep current" : undefined}
               type={showPassword ? "text" : "password"}
               value={form.password}
             />
@@ -415,11 +514,17 @@ function MembersTab({
         <Button
           className="h-11 w-full rounded-xl bg-brand-green-600 text-white hover:bg-brand-green-900"
           disabled={isPending || !selectedRoleId}
-          onClick={handleCreate}
+          onClick={isEditing ? handleUpdate : handleCreate}
           type="button"
         >
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          Create account
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isEditing ? (
+            <Pencil className="h-4 w-4" />
+          ) : (
+            <UserPlus className="h-4 w-4" />
+          )}
+          {isEditing ? "Save changes" : "Create account"}
         </Button>
       </section>
 
@@ -438,11 +543,18 @@ function MembersTab({
                   <th className="px-4 py-3">Role</th>
                   <th className="px-4 py-3">Access</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {(members ?? []).map((member) => (
-                  <tr key={member.id} className="border-b border-neutral-100">
+                  <tr
+                    key={member.id}
+                    className={cn(
+                      "border-b border-neutral-100",
+                      editing?.id === member.id && "bg-brand-green-50/50"
+                    )}
+                  >
                     <td className="px-4 py-3">
                       <p className="font-semibold text-neutral-900">{member.name}</p>
                       <p className="text-xs text-neutral-500">{member.email}</p>
@@ -467,11 +579,21 @@ function MembersTab({
                         {member.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:border-brand-green-600 hover:text-brand-green-700"
+                        onClick={() => startEdit(member)}
+                        type="button"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {(members ?? []).length === 0 ? (
                   <tr>
-                    <td className="px-4 py-10 text-center text-neutral-500" colSpan={4}>
+                    <td className="px-4 py-10 text-center text-neutral-500" colSpan={5}>
                       No staff accounts yet. Create one or send an invite.
                     </td>
                   </tr>

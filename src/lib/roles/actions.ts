@@ -27,12 +27,14 @@ import {
   createStaffAccountSchema,
   createStaffRoleSchema,
   inviteStaffSchema,
+  updateStaffAccountSchema,
   updateStaffRolePermissionsSchema,
   updateStaffRoleSchema,
   type AcceptInviteInput,
   type CreateStaffAccountInput,
   type CreateStaffRoleInput,
   type InviteStaffInput,
+  type UpdateStaffAccountInput,
   type UpdateStaffRoleInput,
   type UpdateStaffRolePermissionsInput,
 } from "@/lib/roles/schemas";
@@ -509,6 +511,89 @@ export async function createStaffAccountAction(
     if (auth) return auth;
     console.error("createStaffAccountAction:", error);
     return { error: "Failed to create staff account." };
+  }
+}
+
+export async function updateStaffAccountAction(
+  id: string,
+  input: UpdateStaffAccountInput
+): Promise<ActionResult<AdminStaffMember>> {
+  try {
+    const adminUser = await requireAdminPermission("roles");
+    const parsed = updateStaffAccountSchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? "Invalid account details." };
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      include: { staffRole: true },
+    });
+    if (!existing) return { error: "Staff account was not found." };
+    if (existing.role !== Role.ADMIN && existing.role !== Role.SUPPORT) {
+      return { error: "Only staff accounts can be edited here." };
+    }
+
+    const staffRole = await prisma.staffRole.findUnique({
+      where: { id: parsed.data.roleId },
+    });
+    if (!staffRole) return { error: "Selected role was not found." };
+    if (staffRole.accessLevel === Role.CUSTOMER) {
+      return { error: "Customer role cannot be used for staff accounts." };
+    }
+
+    if (
+      adminUser.id === id &&
+      staffRole.accessLevel !== Role.ADMIN &&
+      existing.role === Role.ADMIN
+    ) {
+      return { error: "You cannot remove your own admin access." };
+    }
+
+    const phone = parsed.data.phone?.trim() || null;
+    const name = parsed.data.name.trim();
+    const status = parsed.data.status ?? existing.status;
+    const password = parsed.data.password?.trim();
+
+    try {
+      const admin = createAdminClient();
+      const { error } = await admin.auth.admin.updateUserById(id, {
+        ...(password ? { password } : {}),
+        user_metadata: {
+          full_name: name,
+          phone,
+          role: staffRole.accessLevel,
+          staff_role_id: staffRole.id,
+        },
+        ban_duration: status === "SUSPENDED" ? "876000h" : "none",
+      });
+      if (error) {
+        return { error: error.message ?? "Failed to update auth account." };
+      }
+    } catch (error) {
+      console.error("updateStaffAccount auth failed:", error);
+      return { error: "Could not update staff login. Check Supabase service role key." };
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        phone,
+        role: staffRole.accessLevel,
+        staffRoleId: staffRole.id,
+        status,
+      },
+      include: { staffRole: true },
+    });
+
+    revalidatePath("/admin/roles");
+    return { data: mapStaffMember(user) };
+  } catch (error) {
+    const auth = authErrorResult<AdminStaffMember>(error);
+    if (auth) return auth;
+    console.error("updateStaffAccountAction:", error);
+    return { error: "Failed to update staff account." };
   }
 }
 

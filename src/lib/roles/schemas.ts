@@ -28,6 +28,22 @@ export const createStaffAccountSchema = z.object({
     .regex(/[0-9]/, "Include at least one number"),
 });
 
+export const updateStaffAccountSchema = z.object({
+  name: z.string().trim().min(2, "Full name is required"),
+  phone: z.string().trim().max(20).optional(),
+  roleId: z.string().trim().min(1, "Select a role"),
+  status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
+  password: z
+    .string()
+    .optional()
+    .refine(
+      (value) =>
+        !value ||
+        (value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value)),
+      "Password must be at least 8 characters with one uppercase letter and one number"
+    ),
+});
+
 export const inviteStaffSchema = z.object({
   name: z.string().trim().max(80).optional(),
   email: z.string().trim().email("Enter a valid email"),
@@ -56,5 +72,6 @@ export type UpdateStaffRolePermissionsInput = z.infer<
   typeof updateStaffRolePermissionsSchema
 >;
 export type CreateStaffAccountInput = z.infer<typeof createStaffAccountSchema>;
+export type UpdateStaffAccountInput = z.infer<typeof updateStaffAccountSchema>;
 export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;

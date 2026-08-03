@@ -15,7 +15,6 @@ import {
   categoryToSlug,
   getBlogPostBySlugForPreview,
   getPublicBlogPostBySlug,
-  getPublicBlogSlugs,
   getRelatedBlogPosts,
   incrementBlogPostViews,
   type PublicBlogPost,
@@ -23,6 +22,9 @@ import {
 import { getSeoAssets } from "@/lib/seo/page-assets";
 import { buildBlogPostStructuredData } from "@/lib/seo/structured-data";
 import { buildPageMetadata } from "@/lib/seo/site";
+
+/** Always SSR — avoids stale/broken Hostinger static shells for new posts. */
+export const dynamic = "force-dynamic";
 
 type BlogPostPageProps = {
   params: Promise<{ slug: string }>;
@@ -39,31 +41,28 @@ function toPublicShape(post: AdminBlogPost): PublicBlogPost {
 }
 
 function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "WH";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
   return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
 }
 
 async function resolvePost(slug: string, preview: boolean) {
-  if (preview) {
-    try {
-      await requireAdminPermission("blog");
-      const draft = await getBlogPostBySlugForPreview(slug);
-      if (draft) return { post: toPublicShape(draft), isPreview: true };
-    } catch {
-      // Fall through to public
-    }
-  }
-  const post = await getPublicBlogPostBySlug(slug);
-  return post ? { post, isPreview: false } : null;
-}
-
-export async function generateStaticParams() {
   try {
-    const rows = await getPublicBlogSlugs();
-    return rows.map((row) => ({ slug: row.slug }));
-  } catch {
-    return [];
+    if (preview) {
+      try {
+        await requireAdminPermission("blog");
+        const draft = await getBlogPostBySlugForPreview(slug);
+        if (draft) return { post: toPublicShape(draft), isPreview: true };
+      } catch {
+        // Fall through to public
+      }
+    }
+    const post = await getPublicBlogPostBySlug(slug);
+    return post ? { post, isPreview: false } : null;
+  } catch (error) {
+    console.error("Blog post resolve failed:", slug, error);
+    return null;
   }
 }
 
@@ -71,21 +70,26 @@ export async function generateMetadata({
   params,
   searchParams,
 }: BlogPostPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const query = await searchParams;
-  const resolved = await resolvePost(slug, query.preview === "1");
-  if (!resolved) return { title: { absolute: "Article not found | Well Health" } };
-  const { post } = resolved;
-  const { ogImage } = await getSeoAssets();
+  try {
+    const { slug } = await params;
+    const query = await searchParams;
+    const resolved = await resolvePost(slug, query.preview === "1");
+    if (!resolved) return { title: { absolute: "Article not found | Well Health" } };
+    const { post } = resolved;
+    const { ogImage } = await getSeoAssets();
 
-  return buildPageMetadata({
-    title: post.metaTitle || post.title,
-    description: post.metaDescription || post.excerpt,
-    path: `/blog/${post.slug}`,
-    keywords: [post.title, post.category, ...post.tags, "Well Health blog"],
-    ogImage: post.featuredImageUrl || ogImage,
-    ogType: "article",
-  });
+    return buildPageMetadata({
+      title: post.metaTitle || post.title,
+      description: post.metaDescription || post.excerpt,
+      path: `/blog/${post.slug}`,
+      keywords: [post.title, post.category, ...post.tags, "Well Health blog"],
+      ogImage: post.featuredImageUrl || ogImage,
+      ogType: "article",
+    });
+  } catch (error) {
+    console.error("Blog metadata failed:", error);
+    return { title: { absolute: "Blog | Well Health" } };
+  }
 }
 
 export default async function BlogPostPage({ params, searchParams }: BlogPostPageProps) {
@@ -100,9 +104,16 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
     void incrementBlogPostViews(slug);
   }
 
-  const related = await getRelatedBlogPosts(post.id, post.category, 3);
-  const html = renderBlogMarkdown(post.content);
+  let related: PublicBlogPost[] = [];
+  try {
+    related = await getRelatedBlogPosts(post.id, post.category, 3);
+  } catch (error) {
+    console.error("Related blog posts failed:", error);
+  }
+
+  const html = renderBlogMarkdown(post.content || "");
   const structuredData = buildBlogPostStructuredData(post);
+  const categorySlug = categoryToSlug(post.category);
 
   return (
     <div className="bg-white text-neutral-900">
@@ -129,7 +140,7 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
             <ChevronRight className="h-4 w-4" />
             <Link
               className="transition-colors duration-200 hover:text-brand-green-600"
-              href={`/blog?category=${categoryToSlug(post.category)}`}
+              href={`/blog?category=${categorySlug}`}
             >
               {post.category}
             </Link>
@@ -144,7 +155,7 @@ export default async function BlogPostPage({ params, searchParams }: BlogPostPag
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-neutral-500">
             <Link
               className="font-semibold text-brand-green-600 hover:text-brand-green-900"
-              href={`/blog?category=${categoryToSlug(post.category)}`}
+              href={`/blog?category=${categorySlug}`}
             >
               {post.category}
             </Link>
