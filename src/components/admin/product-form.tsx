@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type Dispatch, type SetStateAction } from "react";
 
+import { CreatableSelect } from "@/components/admin/creatable-select";
 import {
   type AdminProduct,
-  type ProductCategory,
   type ProductStatus,
   DOSAGE_FORMS,
   PACK_SIZE_PRESETS,
@@ -33,6 +33,7 @@ import {
   slugifyProductName,
 } from "@/components/admin/products-data";
 import { Button } from "@/components/ui/button";
+import { useAdminCategories } from "@/hooks/use-admin-categories";
 import { useAdminProduct, useProductMutations } from "@/hooks/use-admin-products";
 import { useActiveUnits } from "@/hooks/use-admin-units";
 import { showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
@@ -48,7 +49,7 @@ type FormState = {
   name: string;
   nameBn: string;
   slug: string;
-  category: ProductCategory;
+  category: string;
   brand: string;
   sku: string;
   barcode: string;
@@ -209,6 +210,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
   const { createProduct, updateProduct, uploadImages, deleteImage } =
     useProductMutations();
   const { data: activeUnits = [] } = useActiveUnits();
+  const { data: adminCategories = [] } = useAdminCategories();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [slugManual, setSlugManual] = useState(Boolean(existing?.slug));
@@ -222,15 +224,72 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [customUnits, setCustomUnits] = useState<string[]>([]);
+  const [customDosageForms, setCustomDosageForms] = useState<string[]>([]);
+  const [customStrengthUnits, setCustomStrengthUnits] = useState<string[]>([]);
+  const [customPackTypes, setCustomPackTypes] = useState<string[]>([]);
+  const [customRoutes, setCustomRoutes] = useState<string[]>([]);
+
+  function rememberOption(
+    setter: Dispatch<SetStateAction<string[]>>,
+    value: string
+  ) {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setter((current) => {
+      if (current.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
+        return current;
+      }
+      return [...current, trimmed];
+    });
+  }
+
+  const categoryOptions = useMemo(() => {
+    const fromDb = adminCategories
+      .filter((item) => item.isActive)
+      .map((item) => item.name);
+    const base = fromDb.length > 0 ? fromDb : [...PRODUCT_CATEGORIES];
+    return [...base, ...customCategories, form.category].filter(Boolean);
+  }, [adminCategories, customCategories, form.category]);
 
   const unitOptions = useMemo(() => {
     const fromDb = activeUnits.map((unit) => unit.name);
     const fallback = fromDb.length > 0 ? fromDb : [...PRODUCT_UNITS];
-    if (form.unit && !fallback.includes(form.unit)) {
-      return [form.unit, ...fallback];
-    }
-    return fallback;
-  }, [activeUnits, form.unit]);
+    return [...fallback, ...customUnits, form.unit].filter(Boolean);
+  }, [activeUnits, customUnits, form.unit]);
+
+  const dosageFormOptions = useMemo(
+    () => [...DOSAGE_FORMS, ...customDosageForms, form.dosageForm].filter(Boolean),
+    [customDosageForms, form.dosageForm]
+  );
+
+  const strengthUnitOptions = useMemo(
+    () =>
+      [...STRENGTH_UNITS, ...customStrengthUnits, form.strengthUnitHelper].filter(
+        Boolean
+      ),
+    [customStrengthUnits, form.strengthUnitHelper]
+  );
+
+  const packTypeOptions = useMemo(
+    () => [...PACK_TYPES, ...customPackTypes, form.packType].filter(Boolean),
+    [customPackTypes, form.packType]
+  );
+
+  const routeOptions = useMemo(() => {
+    const base = ROUTES_OF_ADMINISTRATION.map((item) => ({
+      value: item.value,
+      label: item.label,
+    }));
+    const extras = [...customRoutes, form.routeOfAdmin]
+      .filter(Boolean)
+      .filter(
+        (value) => !base.some((item) => item.value.toLowerCase() === value.toLowerCase())
+      )
+      .map((value) => ({ value, label: value }));
+    return [...base, ...extras];
+  }, [customRoutes, form.routeOfAdmin]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -266,7 +325,12 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
           ? "BRN"
           : form.category === "Omega"
             ? "OMG"
-            : "VIT";
+            : form.category === "Vitamins"
+              ? "VIT"
+              : form.category
+                  .replace(/[^a-zA-Z0-9]/g, "")
+                  .slice(0, 3)
+                  .toUpperCase() || "PRD";
     const stamp = String(Date.now()).slice(-4);
     return `WHT-${prefix}-${stamp}`;
   }, [form.category]);
@@ -602,17 +666,13 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
               </Field>
 
               <Field label="Category (ক্যাটাগরি) *">
-                <select
-                  className={inputClass}
-                  onChange={(event) => update("category", event.target.value as ProductCategory)}
+                <CreatableSelect
+                  onChange={(value) => update("category", value)}
+                  onCreate={(value) => rememberOption(setCustomCategories, value)}
+                  options={categoryOptions}
+                  placeholder="Type or select category"
                   value={form.category}
-                >
-                  {PRODUCT_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
 
               <Field label="SKU / Product code (এসকেইউ / পণ্য কোড)">
@@ -683,17 +743,13 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 />
               </Field>
               <Field label="Packaging unit (প্যাকেজিং ইউনিট)">
-                <select
-                  className={inputClass}
-                  onChange={(event) => update("unit", event.target.value)}
+                <CreatableSelect
+                  onChange={(value) => update("unit", value || "Bottle")}
+                  onCreate={(value) => rememberOption(setCustomUnits, value)}
+                  options={unitOptions}
+                  placeholder="Type or select unit"
                   value={form.unit}
-                >
-                  {unitOptions.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
             </div>
           </Section>
@@ -704,18 +760,15 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Dosage form (ডোজ ফর্ম)">
-                <select
-                  className={inputClass}
-                  onChange={(event) => update("dosageForm", event.target.value)}
+                <CreatableSelect
+                  allowEmpty
+                  emptyLabel="Select dosage form"
+                  onChange={(value) => update("dosageForm", value)}
+                  onCreate={(value) => rememberOption(setCustomDosageForms, value)}
+                  options={dosageFormOptions}
+                  placeholder="Type or select dosage form"
                   value={form.dosageForm}
-                >
-                  <option value="">Select dosage form</option>
-                  {DOSAGE_FORMS.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
 
               <Field
@@ -731,36 +784,34 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                     placeholder="e.g. 500 mg, 250 mg/5 ml, 1%"
                     value={form.strength}
                   />
-                  <select
-                    aria-label="Append strength unit"
-                    className={cn(inputClass, "sm:w-40")}
-                    onChange={(event) => {
-                      const unit = event.target.value;
-                      update("strengthUnitHelper", unit);
-                      if (!unit) return;
-                      setForm((current) => {
-                        const base = current.strength.trim();
-                        // If empty or numeric-only, append selected unit
-                        const next =
-                          !base || /^[\d./]+$/.test(base)
-                            ? `${base || ""}${base ? " " : ""}${unit}`.trim()
-                            : base;
-                        return {
-                          ...current,
-                          strength: next,
-                          strengthUnitHelper: "",
-                        };
-                      });
-                    }}
-                    value={form.strengthUnitHelper}
-                  >
-                    <option value="">Unit…</option>
-                    {STRENGTH_UNITS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="sm:w-40">
+                    <CreatableSelect
+                      aria-label="Append strength unit"
+                      allowEmpty
+                      emptyLabel="Unit…"
+                      onChange={(unit) => {
+                        update("strengthUnitHelper", unit);
+                        if (!unit) return;
+                        rememberOption(setCustomStrengthUnits, unit);
+                        setForm((current) => {
+                          const base = current.strength.trim();
+                          const next =
+                            !base || /^[\d./]+$/.test(base)
+                              ? `${base || ""}${base ? " " : ""}${unit}`.trim()
+                              : base;
+                          return {
+                            ...current,
+                            strength: next,
+                            strengthUnitHelper: "",
+                          };
+                        });
+                      }}
+                      onCreate={(value) => rememberOption(setCustomStrengthUnits, value)}
+                      options={strengthUnitOptions}
+                      placeholder="Unit…"
+                      value={form.strengthUnitHelper}
+                    />
+                  </div>
                 </div>
                 <datalist id="strength-presets">
                   {STRENGTH_EXAMPLES.map((item) => (
@@ -773,10 +824,10 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 helper="Pack quantity type — not strength"
                 label="Pack type (প্যাকের ধরন)"
               >
-                <select
-                  className={inputClass}
-                  onChange={(event) => {
-                    const packType = event.target.value;
+                <CreatableSelect
+                  allowEmpty
+                  emptyLabel="Select pack type"
+                  onChange={(packType) => {
                     setForm((current) => {
                       const qty = Number(current.quantityPerPack || 0);
                       const suggested =
@@ -790,15 +841,11 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                       };
                     });
                   }}
+                  onCreate={(value) => rememberOption(setCustomPackTypes, value)}
+                  options={packTypeOptions}
+                  placeholder="Type or select pack type"
                   value={form.packType}
-                >
-                  <option value="">Select pack type</option>
-                  {PACK_TYPES.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
 
               <Field label="Quantity per pack (প্রতি প্যাকে পরিমাণ)">
@@ -846,22 +893,15 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
               </Field>
 
               <Field label="Route of administration (প্রয়োগের পথ)">
-                <select
-                  className={inputClass}
-                  onChange={(event) => update("routeOfAdmin", event.target.value)}
+                <CreatableSelect
+                  allowEmpty
+                  emptyLabel="Select route"
+                  onChange={(value) => update("routeOfAdmin", value)}
+                  onCreate={(value) => rememberOption(setCustomRoutes, value)}
+                  options={routeOptions}
+                  placeholder="Type or select route"
                   value={form.routeOfAdmin}
-                >
-                  <option value="">Select route</option>
-                  {ROUTES_OF_ADMINISTRATION.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.value}
-                    </option>
-                  ))}
-                  {form.routeOfAdmin &&
-                  !ROUTES_OF_ADMINISTRATION.some((item) => item.value === form.routeOfAdmin) ? (
-                    <option value={form.routeOfAdmin}>{form.routeOfAdmin}</option>
-                  ) : null}
-                </select>
+                />
               </Field>
 
               <Field label="Generic / composition name (জেনেরিক নাম)">

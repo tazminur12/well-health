@@ -109,41 +109,83 @@ async function steadfastRequest<T>(
   const url = `${getBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
 
   try {
+    const apiKey = process.env.STEADFAST_API_KEY!.trim();
+    const secretKey = process.env.STEADFAST_SECRET_KEY!.trim();
+
+    // Docs require exact header names: Api-Key, Secret-Key, Content-Type
+    const headers = new Headers(init?.headers);
+    headers.set("Api-Key", apiKey);
+    headers.set("Secret-Key", secretKey);
+    headers.set("Content-Type", "application/json");
+    headers.set("Accept", "application/json");
+
     const response = await fetch(url, {
       ...init,
-      headers: {
-        "Api-Key": process.env.STEADFAST_API_KEY!.trim(),
-        "Secret-Key": process.env.STEADFAST_SECRET_KEY!.trim(),
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...(init?.headers ?? {}),
-      },
+      headers,
       cache: "no-store",
     });
 
     const latencyMs = Date.now() - started;
     const text = await response.text();
     let json: unknown = null;
+    let parseFailed = false;
     try {
       json = text ? JSON.parse(text) : null;
     } catch {
+      parseFailed = true;
+    }
+
+    const jsonMessage =
+      typeof json === "object" &&
+      json &&
+      "message" in json &&
+      typeof (json as { message: unknown }).message === "string"
+        ? (json as { message: string }).message
+        : null;
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        const inactive =
+          jsonMessage && /not active|inactive|unauthorized/i.test(jsonMessage);
+        return {
+          ok: false,
+          latencyMs,
+          statusCode: response.status,
+          error: inactive
+            ? `Steadfast: ${jsonMessage}. Contact Steadfast to activate your merchant API access.`
+            : jsonMessage
+              ? `Steadfast auth failed: ${jsonMessage}`
+              : "Steadfast authentication failed (HTTP 401). Your Api-Key/Secret-Key were rejected — confirm they match Packzy → API Settings, ensure the account is API-active, then restart `npm run dev`.",
+        };
+      }
+
+      if (parseFailed) {
+        const snippet = text.replace(/\s+/g, " ").trim().slice(0, 160);
+        return {
+          ok: false,
+          latencyMs,
+          statusCode: response.status,
+          error: snippet
+            ? `Steadfast error (HTTP ${response.status}): ${snippet}`
+            : `Steadfast request failed (HTTP ${response.status}).`,
+        };
+      }
+
+      return {
+        ok: false,
+        latencyMs,
+        statusCode: response.status,
+        error: jsonMessage || `Steadfast request failed (HTTP ${response.status}).`,
+      };
+    }
+
+    if (parseFailed) {
       return {
         ok: false,
         latencyMs,
         statusCode: response.status,
         error: `Invalid JSON from Steadfast (HTTP ${response.status}).`,
       };
-    }
-
-    if (!response.ok) {
-      const message =
-        typeof json === "object" &&
-        json &&
-        "message" in json &&
-        typeof (json as { message: unknown }).message === "string"
-          ? (json as { message: string }).message
-          : `Steadfast request failed (HTTP ${response.status}).`;
-      return { ok: false, latencyMs, statusCode: response.status, error: message };
     }
 
     return { ok: true, data: json as T, latencyMs };
