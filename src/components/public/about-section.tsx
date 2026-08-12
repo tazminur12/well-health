@@ -150,7 +150,7 @@ export function AboutSection({ content }: AboutSectionProps) {
         </div>
 
         {data.features.length > 0 ? (
-          <div className="mt-10 grid gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-4 lg:mt-16 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-4 lg:mt-16 lg:grid-cols-4">
             {data.features.map((feature, index) => {
               const Icon = featureIconMap[feature.iconKey] ?? Award;
               const tone = cardTones[index % cardTones.length]!;
@@ -165,7 +165,7 @@ export function AboutSection({ content }: AboutSectionProps) {
                 >
                   <div
                     className={cn(
-                      "relative flex h-full min-h-[5.75rem] flex-col overflow-hidden rounded-[1.3rem] bg-gradient-to-br p-4 sm:min-h-[9.25rem] sm:p-5",
+                      "relative flex h-full min-h-[8.5rem] flex-col overflow-hidden rounded-[1.3rem] bg-gradient-to-br p-3.5 sm:min-h-[9.25rem] sm:p-5",
                       tone.soft
                     )}
                   >

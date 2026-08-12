@@ -61,7 +61,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
                 !activeCategory
-                  ? "bg-white text-brand-green-800 shadow-md"
+                  ? "bg-white text-brand-green-900 shadow-md"
                   : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
               )}
               href="/blog"
@@ -77,7 +77,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
                     active
-                      ? "bg-white text-brand-green-800 shadow-md"
+                      ? "bg-white text-brand-green-900 shadow-md"
                       : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
                   )}
                   href={`/blog?category=${slug}`}
