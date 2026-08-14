@@ -111,7 +111,7 @@ export const distributorStatusMeta: Record<
   DistributorApplicationStatus,
   { label: string; pill: string }
 > = {
-  NEW: { label: "New", pill: "bg-brand-green-100 text-brand-green-800" },
+  NEW: { label: "New", pill: "bg-brand-green-100 text-brand-green-900" },
   REVIEWING: { label: "Reviewing", pill: "bg-blue-100 text-blue-800" },
   APPROVED: { label: "Approved", pill: "bg-emerald-100 text-emerald-800" },
   REJECTED: { label: "Rejected", pill: "bg-red-100 text-red-800" },

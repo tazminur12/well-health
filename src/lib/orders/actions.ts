@@ -530,3 +530,37 @@ export async function createAdminOrderAction(
     return handleError(error);
   }
 }
+
+export async function deleteOrderAction(id: string): Promise<OrderActionResult> {
+  try {
+    await requireAdminPermission("orders");
+    if (!id.trim()) return { error: "Order is required." };
+
+    const existing = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!existing) return { error: "Order not found." };
+
+    await prisma.$transaction(async (tx) => {
+      if (existing.status !== OrderStatus.CANCELLED) {
+        for (const item of existing.items) {
+          if (!item.productId) continue;
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
+      }
+
+      await tx.order.delete({ where: { id } });
+    });
+
+    revalidateOrders(id);
+    revalidatePath("/shop");
+    revalidatePath("/admin/inventory");
+    return { success: `${existing.orderNumber} deleted.` };
+  } catch (error) {
+    return handleError(error);
+  }
+}

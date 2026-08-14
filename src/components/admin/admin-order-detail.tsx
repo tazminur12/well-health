@@ -10,10 +10,12 @@ import {
   MapPin,
   Package2,
   Printer,
+  Trash2,
   User,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import {
@@ -119,8 +121,9 @@ type AdminOrderDetailProps = {
 };
 
 export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
+  const router = useRouter();
   const { data: order, isLoading, isError, error, refetch } = useAdminOrder(orderId);
-  const { updateStatus, updatePayment, updateNotes } = useOrderMutations();
+  const { updateStatus, updatePayment, updateNotes, deleteOrder } = useOrderMutations();
   const [isPdfPending, startPdf] = useTransition();
   const [pdfKind, setPdfKind] = useState<"invoice" | "packing" | null>(null);
 
@@ -263,6 +266,28 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
     }
   }
 
+  async function handleDelete() {
+    if (!order) return;
+    const ok = await confirmAdminAction({
+      title: "Delete this order?",
+      text: `${order.orderNumber} will be permanently removed. Stock will be restored if the order is not already cancelled.`,
+      confirmText: "Delete",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteOrder.mutateAsync(order.id);
+      await showAdminSuccess("Order deleted", `${order.orderNumber} has been removed.`);
+      router.push("/admin/orders");
+      router.refresh();
+    } catch (err) {
+      await showAdminError(
+        "Delete failed",
+        err instanceof Error ? err.message : "Please try again."
+      );
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-24 text-neutral-500">
@@ -364,6 +389,16 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
                 <Printer className="mr-2 h-4 w-4" />
               )}
               Print invoice
+            </Button>
+            <Button
+              className="rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+              disabled={deleteOrder.isPending}
+              onClick={() => void handleDelete()}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
             </Button>
           </div>
           <div className="flex flex-wrap justify-end gap-2">

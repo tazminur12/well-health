@@ -45,9 +45,10 @@ function handleError<T = undefined>(error: unknown): DistributorActionResult<T> 
   };
 }
 
-function revalidateDistributors() {
+function revalidateDistributors(id?: string) {
   revalidatePath("/admin/distributors");
   revalidatePath("/admin/distributors/new");
+  if (id) revalidatePath(`/admin/distributors/${id}`);
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin", "layout");
 }
@@ -120,7 +121,7 @@ export async function submitDistributorApplicationAction(
       type: "CUSTOMER",
       title: "New distributor application",
       message: `${parsed.data.fullName} · ${parsed.data.district}`,
-      href: `/admin/distributors?id=${row.id}`,
+      href: `/admin/distributors/${row.id}`,
     });
 
     revalidateDistributors();
@@ -170,7 +171,7 @@ export async function createDistributorApplicationAction(
         ? await notifyDistributorApproval("NEW", application)
         : undefined;
 
-    revalidateDistributors();
+    revalidateDistributors(row.id);
     return {
       data: application,
       success: approvalNotice ?? "Distributor added successfully.",
@@ -243,6 +244,19 @@ export async function getDistributorApplicationsUnreadCountAction(): Promise<
   }
 }
 
+export async function getDistributorApplicationAction(
+  id: string
+): Promise<DistributorActionResult<AdminDistributorApplication>> {
+  try {
+    await requireAdminPermission("distributors");
+    const row = await prisma.distributorApplication.findUnique({ where: { id } });
+    if (!row) return { error: "Application not found." };
+    return { data: mapDistributorApplication(row) };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
 export async function updateDistributorApplicationAction(
   id: string,
   input: UpdateDistributorApplicationInput
@@ -280,7 +294,7 @@ export async function updateDistributorApplicationAction(
       ? await notifyDistributorApproval(existing.status, application)
       : undefined;
 
-    revalidateDistributors();
+    revalidateDistributors(id);
     return {
       data: application,
       success:
@@ -306,7 +320,7 @@ export async function deleteDistributorApplicationAction(
   try {
     await requireAdminPermission("distributors");
     await prisma.distributorApplication.delete({ where: { id } });
-    revalidateDistributors();
+    revalidateDistributors(id);
     return { success: "Application deleted." };
   } catch (error) {
     return handleError(error);

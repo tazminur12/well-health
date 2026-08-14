@@ -61,7 +61,7 @@ export function AdminDistributorForm() {
     try {
       const result = await createApplication.mutateAsync(form);
       await showAdminSuccess("Distributor added", result.success ?? "Record saved.");
-      router.push(`/admin/distributors?id=${result.data?.id ?? ""}`);
+      router.push(result.data?.id ? `/admin/distributors/${result.data.id}` : "/admin/distributors");
       router.refresh();
     } catch (err) {
       await showAdminError(

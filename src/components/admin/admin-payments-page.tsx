@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Settings2,
   Smartphone,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -60,7 +61,7 @@ const gatewayThemes = {
 export function AdminPaymentsPage() {
   const { data, isLoading, isError, error, refetch, isFetching } =
     useAdminPaymentOverview();
-  const { updateSettings, updateOrderPayment } = usePaymentMutations();
+  const { updateSettings, updateOrderPayment, deleteOrder } = usePaymentMutations();
 
   const [tab, setTab] = useState<Tab>("overview");
   const [draft, setDraft] = useState<PaymentSettings | null>(null);
@@ -163,6 +164,25 @@ export function AdminPaymentsPage() {
     }
   }
 
+  async function handleDeletePayment(orderId: string, orderNumber: string) {
+    const ok = await confirmAdminAction({
+      title: "Delete this payment record?",
+      text: `${orderNumber} will be permanently removed. Stock will be restored if the order is not already cancelled.`,
+      confirmText: "Delete",
+    });
+    if (!ok) return;
+    try {
+      await deleteOrder.mutateAsync(orderId);
+      await showAdminSuccess("Deleted", `${orderNumber} has been removed.`);
+      void refetch();
+    } catch (err) {
+      await showAdminError(
+        "Delete failed",
+        err instanceof Error ? err.message : "Please try again."
+      );
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -229,6 +249,66 @@ export function AdminPaymentsPage() {
             ))}
           </div>
 
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {data.gateways.map((gateway) => {
+              const Icon = gatewayIcons[gateway.id];
+              const theme = gatewayThemes[gateway.id];
+              return (
+                <div
+                  className={cn(
+                    "overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br p-5 shadow-sm",
+                    theme.card
+                  )}
+                  key={gateway.id}
+                >
+                  <div className={cn("mb-4 h-1 w-16 rounded-full bg-gradient-to-r", theme.bar)} />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm",
+                          theme.icon
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-heading text-lg font-bold text-neutral-900">
+                          {gateway.name}
+                        </p>
+                        <p className="text-xs text-neutral-500">{gateway.description}</p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+                        gateway.enabled
+                          ? "bg-brand-green-100 text-brand-green-700"
+                          : "bg-neutral-100 text-neutral-500"
+                      )}
+                    >
+                      {gateway.enabled ? "On" : "Off"}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-xl bg-white/80 px-3 py-2">
+                      <p className="text-xs text-neutral-500">Collected</p>
+                      <p className="font-semibold text-neutral-900">
+                        {formatPrice(gateway.paidAmount)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-white/80 px-3 py-2">
+                      <p className="text-xs text-neutral-500">Outstanding</p>
+                      <p className="font-semibold text-neutral-900">
+                        {formatPrice(gateway.unpaidAmount)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
           <div className="flex flex-wrap gap-2">
             {(
               [
@@ -257,138 +337,87 @@ export function AdminPaymentsPage() {
           </div>
 
           {tab === "overview" ? (
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-                <div className="border-b border-neutral-100 px-5 py-4">
-                  <h2 className="font-heading text-lg font-bold text-neutral-900">
-                    Recent payments
-                  </h2>
-                  <p className="text-sm text-neutral-500">
-                    Latest orders with payment method and status.
-                  </p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-neutral-50/80 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      <tr>
-                        <th className="px-4 py-3">Order</th>
-                        <th className="px-4 py-3">Method</th>
-                        <th className="px-4 py-3">Payment</th>
+            <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <div className="border-b border-neutral-100 px-5 py-4">
+                <h2 className="font-heading text-lg font-bold text-neutral-900">
+                  Recent payments
+                </h2>
+                <p className="text-sm text-neutral-500">
+                  Latest orders with payment method and status.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-neutral-50/80 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    <tr>
+                      <th className="px-4 py-3">Order</th>
+                      <th className="px-4 py-3">Method</th>
+                      <th className="px-4 py-3">Payment</th>
                         <th className="px-4 py-3">Amount</th>
-                        <th className="px-4 py-3" />
+                        <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {data.recent.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-10 text-center text-neutral-500" colSpan={5}>
+                          No payment records yet.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-100">
-                      {data.recent.length === 0 ? (
-                        <tr>
-                          <td className="px-4 py-10 text-center text-neutral-500" colSpan={5}>
-                            No payment records yet.
+                    ) : (
+                      data.recent.map((row) => (
+                        <tr className="hover:bg-brand-green-50/30" key={row.id}>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-neutral-900">{row.orderNumber}</p>
+                            <p className="text-xs text-neutral-500">{row.customerName}</p>
                           </td>
-                        </tr>
-                      ) : (
-                        data.recent.map((row) => (
-                          <tr className="hover:bg-brand-green-50/30" key={row.id}>
-                            <td className="px-4 py-3">
-                              <p className="font-semibold text-neutral-900">{row.orderNumber}</p>
-                              <p className="text-xs text-neutral-500">{row.customerName}</p>
-                            </td>
-                            <td className="px-4 py-3 text-neutral-700">
-                              {PAYMENT_METHOD_LABELS[row.paymentMethod]}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span
-                                className={cn(
-                                  "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                                  row.paymentStatus === "PAID"
-                                    ? "bg-brand-green-100 text-brand-green-700"
-                                    : row.paymentStatus === "UNPAID"
-                                      ? "bg-amber-100 text-amber-700"
-                                      : "bg-red-100 text-red-700"
-                                )}
-                              >
-                                {PAYMENT_STATUS_LABELS[row.paymentStatus]}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 font-semibold text-neutral-900">
-                              {formatPrice(row.total)}
-                            </td>
-                            <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-neutral-700">
+                            {PAYMENT_METHOD_LABELS[row.paymentMethod]}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                                row.paymentStatus === "PAID"
+                                  ? "bg-brand-green-100 text-brand-green-700"
+                                  : row.paymentStatus === "UNPAID"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-red-100 text-red-700"
+                              )}
+                            >
+                              {PAYMENT_STATUS_LABELS[row.paymentStatus]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-neutral-900">
+                            {formatPrice(row.total)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="inline-flex items-center justify-end gap-1.5">
                               <Link
-                                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-green-700 hover:underline"
+                                className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold text-brand-green-700 hover:bg-brand-green-50"
                                 href={`/admin/orders/${row.id}`}
                               >
                                 View
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </Link>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                {data.gateways.map((gateway) => {
-                  const Icon = gatewayIcons[gateway.id];
-                  const theme = gatewayThemes[gateway.id];
-                  return (
-                    <div
-                      className={cn(
-                        "overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-br p-5 shadow-sm",
-                        theme.card
-                      )}
-                      key={gateway.id}
-                    >
-                      <div className={cn("mb-4 h-1 w-16 rounded-full bg-gradient-to-r", theme.bar)} />
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={cn(
-                              "flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm",
-                              theme.icon
-                            )}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </span>
-                          <div>
-                            <p className="font-heading text-lg font-bold text-neutral-900">
-                              {gateway.name}
-                            </p>
-                            <p className="text-xs text-neutral-500">{gateway.description}</p>
-                          </div>
-                        </div>
-                        <span
-                          className={cn(
-                            "rounded-full px-2.5 py-1 text-xs font-semibold",
-                            gateway.enabled
-                              ? "bg-brand-green-100 text-brand-green-700"
-                              : "bg-neutral-100 text-neutral-500"
-                          )}
-                        >
-                          {gateway.enabled ? "On" : "Off"}
-                        </span>
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-xl bg-white/80 px-3 py-2">
-                          <p className="text-xs text-neutral-500">Collected</p>
-                          <p className="font-semibold text-neutral-900">
-                            {formatPrice(gateway.paidAmount)}
-                          </p>
-                        </div>
-                        <div className="rounded-xl bg-white/80 px-3 py-2">
-                          <p className="text-xs text-neutral-500">Outstanding</p>
-                          <p className="font-semibold text-neutral-900">
-                            {formatPrice(gateway.unpaidAmount)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </section>
-            </div>
+                              <button
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-red-200 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                                disabled={deleteOrder.isPending}
+                                onClick={() => void handleDeletePayment(row.id, row.orderNumber)}
+                                title="Delete"
+                                type="button"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           ) : null}
 
           {tab === "gateways" && settings ? (

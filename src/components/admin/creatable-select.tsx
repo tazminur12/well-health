@@ -243,7 +243,11 @@ export function CreatableSelect({
             <li className="px-3.5 py-2.5 text-sm text-neutral-500">No matches</li>
           ) : (
             menuItems.map((item, index) => (
-              <li key={`${item.kind}-${item.value || "empty"}`} role="option">
+              <li
+                aria-selected={index === highlight}
+                key={`${item.kind}-${item.value || "empty"}`}
+                role="option"
+              >
                 <button
                   className={cn(
                     "flex w-full items-center gap-2 px-3.5 py-2 text-left text-sm transition-colors",

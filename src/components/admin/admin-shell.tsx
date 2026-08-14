@@ -227,6 +227,7 @@ export function AdminShell({
     if (pathname?.includes("/reports")) return "Reports";
     if (pathname?.includes("/messages")) return "Messages";
     if (pathname?.includes("/distributors/new")) return "Add Distributor";
+    if (pathname?.match(/\/distributors\/[^/]+$/)) return "Distributor Details";
     if (pathname?.includes("/distributors")) return "Distributors";
     if (pathname?.includes("/marketing")) return "Marketing";
     if (pathname?.includes("/chatbot")) return "Chatbot";

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createDistributorApplicationAction,
   deleteDistributorApplicationAction,
+  getDistributorApplicationAction,
   getDistributorApplicationsUnreadCountAction,
   listDistributorApplicationsAction,
   markDistributorApplicationReviewingAction,
@@ -24,6 +25,18 @@ export function useAdminDistributors(filter: DistributorApplicationFilter = "all
     queryKey: [...ADMIN_DISTRIBUTORS_KEY, filter],
     queryFn: async () => {
       const result = await listDistributorApplicationsAction({ filter });
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+  });
+}
+
+export function useAdminDistributor(id?: string) {
+  return useQuery({
+    queryKey: [...ADMIN_DISTRIBUTORS_KEY, "detail", id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      const result = await getDistributorApplicationAction(id!);
       if (result.error) throw new Error(result.error);
       return result.data!;
     },

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createAdminOrderAction,
+  deleteOrderAction,
   getOrderAction,
   getOrderStatsAction,
   listOrdersAction,
@@ -116,5 +117,14 @@ export function useOrderMutations() {
     onSuccess: invalidate,
   });
 
-  return { createOrder, updateStatus, updatePayment, updateNotes };
+  const deleteOrder = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await deleteOrderAction(id);
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { createOrder, updateStatus, updatePayment, updateNotes, deleteOrder };
 }

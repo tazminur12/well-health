@@ -7,10 +7,14 @@ import {
   CreditCard,
   Eye,
   Smartphone,
+  Trash2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTransition } from "react";
 
+import { useOrderMutations } from "@/hooks/use-admin-orders";
+import { confirmAdminAction, showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
 import { formatPrice } from "@/lib/format-price";
 import {
   ORDER_STATUS_LABELS,
@@ -75,6 +79,29 @@ export function AdminOrdersTable({
   const totalPages = Math.max(1, Math.ceil(totalOrders / pageSize));
   const start = totalOrders === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalOrders);
+  const { deleteOrder } = useOrderMutations();
+  const [isPending, startTransition] = useTransition();
+
+  async function handleDelete(order: AdminOrder) {
+    const ok = await confirmAdminAction({
+      title: "Delete this order?",
+      text: `${order.orderNumber} will be permanently removed. Stock will be restored if the order is not already cancelled.`,
+      confirmText: "Delete",
+    });
+    if (!ok) return;
+
+    startTransition(async () => {
+      try {
+        await deleteOrder.mutateAsync(order.id);
+        await showAdminSuccess("Order deleted", `${order.orderNumber} has been removed.`);
+      } catch (err) {
+        await showAdminError(
+          "Delete failed",
+          err instanceof Error ? err.message : "Please try again."
+        );
+      }
+    });
+  }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -192,13 +219,24 @@ export function AdminOrdersTable({
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <Link
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-600 transition-colors hover:border-brand-green-200 hover:bg-brand-green-50 hover:text-brand-green-700"
-                        href={`/admin/orders/${order.id}`}
-                        title="View order"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        <Link
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-600 transition-colors hover:border-brand-green-200 hover:bg-brand-green-50 hover:text-brand-green-700"
+                          href={`/admin/orders/${order.id}`}
+                          title="View order"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <button
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-200 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                          disabled={isPending || deleteOrder.isPending}
+                          onClick={() => void handleDelete(order)}
+                          title="Delete order"
+                          type="button"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

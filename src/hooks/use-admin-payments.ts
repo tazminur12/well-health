@@ -8,7 +8,7 @@ import {
   updatePaymentSettingsAction,
 } from "@/lib/payments/actions";
 import type { PaymentSettings } from "@/lib/payments/schemas";
-import { updateOrderPaymentAction } from "@/lib/orders/actions";
+import { updateOrderPaymentAction, deleteOrderAction } from "@/lib/orders/actions";
 import type { PaymentStatusValue } from "@/lib/orders/schemas";
 
 export const ADMIN_PAYMENTS_KEY = ["admin-payments"] as const;
@@ -70,5 +70,14 @@ export function usePaymentMutations() {
     onSuccess: invalidate,
   });
 
-  return { updateSettings, updateOrderPayment };
+  const deleteOrder = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await deleteOrderAction(id);
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { updateSettings, updateOrderPayment, deleteOrder };
 }
