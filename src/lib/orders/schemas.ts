@@ -35,7 +35,12 @@ export const adminCreateOrderItemSchema = z.object({
 
 export const adminCreateOrderSchema = z.object({
   userId: z.string().uuid().optional().nullable(),
-  email: z.string().trim().email("Enter a valid email"),
+  email: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || z.string().email().safeParse(value).success, {
+      message: "Enter a valid email",
+    }),
   phone: z.string().trim().min(10, "Enter a valid phone"),
   customerName: z.string().trim().min(2, "Customer name is required").max(120),
   shippingFullName: z.string().trim().min(2, "Recipient name is required").max(120),
@@ -44,6 +49,7 @@ export const adminCreateOrderSchema = z.object({
   shippingArea: z.string().trim().min(2, "Area is required").max(120),
   shippingDetails: z.string().trim().min(5, "Enter a detailed address").max(500),
   shippingZoneId: z.string().min(1, "Select a shipping zone"),
+  freeShipping: z.boolean().optional().default(false),
   paymentMethod: z.enum(PAYMENT_METHODS),
   paymentStatus: z.enum(PAYMENT_STATUSES).default("UNPAID"),
   status: z.enum(ORDER_STATUSES).default("PENDING"),

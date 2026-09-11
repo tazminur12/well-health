@@ -423,8 +423,9 @@ export async function createAdminOrderAction(
 
     const freeThreshold =
       zone.freeShippingMin != null ? Number(zone.freeShippingMin) : store.freeShippingMin;
-    const shippingFee =
-      freeThreshold > 0 && subtotal - discount >= freeThreshold
+    const shippingFee = data.freeShipping
+      ? 0
+      : freeThreshold > 0 && subtotal - discount >= freeThreshold
         ? 0
         : Number(zone.baseFee);
     const total = Math.max(0, subtotal - discount + shippingFee);
@@ -468,7 +469,7 @@ export async function createAdminOrderAction(
         data: {
           orderNumber,
           userId: data.userId || null,
-          email: data.email.trim().toLowerCase(),
+          email: data.email.trim().toLowerCase() || "",
           phone,
           customerName: data.customerName.trim(),
           shippingFullName: data.shippingFullName.trim(),

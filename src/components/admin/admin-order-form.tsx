@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Truck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -76,6 +77,7 @@ export function AdminOrderForm() {
   const [shippingDetails, setShippingDetails] = useState("");
   const [sameAsCustomer, setSameAsCustomer] = useState(true);
   const [zoneId, setZoneId] = useState("");
+  const [freeShipping, setFreeShipping] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodValue>("COD");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusValue>("UNPAID");
   const [status, setStatus] = useState<OrderStatusValue>("PENDING");
@@ -120,7 +122,7 @@ export function AdminOrderForm() {
   }, [sellableProducts, productQuery]);
 
   const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
-  const shippingFee = selectedZone?.baseFee ?? 0;
+  const shippingFee = freeShipping ? 0 : (selectedZone?.baseFee ?? 0);
   const estimatedTotal = subtotal + shippingFee;
 
   function applyCustomer(customerId: string) {
@@ -190,7 +192,7 @@ export function AdminOrderForm() {
 
     const payload: AdminCreateOrderInput = {
       userId: userId || null,
-      email,
+      email: email.trim(),
       phone,
       customerName,
       shippingFullName: sameAsCustomer ? customerName : shippingFullName,
@@ -199,6 +201,7 @@ export function AdminOrderForm() {
       shippingArea,
       shippingDetails,
       shippingZoneId: selectedZone?.id ?? zoneId,
+      freeShipping,
       paymentMethod,
       paymentStatus,
       status,
@@ -322,11 +325,14 @@ export function AdminOrderForm() {
                   />
                 </label>
                 <label className="space-y-1.5 text-sm sm:col-span-2">
-                  <span className="font-medium text-neutral-700">Email</span>
+                  <span className="font-medium text-neutral-700">
+                    Email{" "}
+                    <span className="font-normal text-neutral-400">(optional)</span>
+                  </span>
                   <input
                     className={fieldClass}
                     onChange={(event) => setEmail(event.target.value)}
-                    required
+                    placeholder="customer@email.com"
                     type="email"
                     value={email}
                   />
@@ -479,6 +485,49 @@ export function AdminOrderForm() {
                   )}
                 </select>
               </label>
+
+              <button
+                aria-pressed={freeShipping}
+                className={cn(
+                  "sm:col-span-2 flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition",
+                  freeShipping
+                    ? "border-brand-green-400 bg-brand-green-50 shadow-sm"
+                    : "border-neutral-200 bg-neutral-50/70 hover:border-brand-green-300 hover:bg-brand-green-50/40"
+                )}
+                onClick={() => setFreeShipping((current) => !current)}
+                type="button"
+              >
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                    freeShipping
+                      ? "bg-brand-green-600 text-white"
+                      : "bg-white text-brand-green-700 ring-1 ring-neutral-200"
+                  )}
+                >
+                  <Truck className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-neutral-900">
+                    Free delivery
+                  </span>
+                  <span className="mt-0.5 block text-xs text-neutral-500">
+                    {freeShipping
+                      ? "Shipping fee set to ৳0 for this order"
+                      : "Click to waive the shipping fee on this order"}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+                    freeShipping
+                      ? "bg-brand-green-600 text-white"
+                      : "bg-white text-neutral-500 ring-1 ring-neutral-200"
+                  )}
+                >
+                  {freeShipping ? "On" : "Off"}
+                </span>
+              </button>
             </div>
           </section>
 
@@ -689,10 +738,14 @@ export function AdminOrderForm() {
               </div>
               <div className="flex justify-between text-neutral-600">
                 <span>Shipping (est.)</span>
-                <span>{formatPrice(shippingFee)}</span>
+                <span className={freeShipping ? "font-semibold text-brand-green-700" : undefined}>
+                  {freeShipping ? "Free" : formatPrice(shippingFee)}
+                </span>
               </div>
               <p className="text-xs text-neutral-400">
-                Coupon discount and free-shipping rules are applied on the server.
+                {freeShipping
+                  ? "Free delivery is enabled for this order."
+                  : "Coupon discount and free-shipping rules are applied on the server."}
               </p>
               <div className="flex items-end justify-between border-t border-neutral-100 pt-3">
                 <span className="font-semibold text-neutral-900">Est. total</span>
