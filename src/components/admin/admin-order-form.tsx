@@ -20,6 +20,7 @@ import {
   getBdDivisionForDistrict,
   getBdThanas,
 } from "@/components/customer/address-card";
+import { CreatableSelect } from "@/components/admin/creatable-select";
 import { Button } from "@/components/ui/button";
 import { useAdminCustomers } from "@/hooks/use-admin-customers";
 import { useOrderMutations } from "@/hooks/use-admin-orders";
@@ -435,26 +436,16 @@ export function AdminOrderForm() {
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-medium text-neutral-700">Area / Thana</span>
-                <select
+                <CreatableSelect
                   className={fieldClass}
                   disabled={!shippingDistrict}
-                  onChange={(event) => setShippingArea(event.target.value)}
-                  required
+                  onChange={setShippingArea}
+                  options={getBdThanas(shippingDistrict)}
+                  placeholder={
+                    shippingDistrict ? "Type or select thana" : "Select district first"
+                  }
                   value={shippingArea}
-                >
-                  <option value="">
-                    {shippingDistrict ? "Select thana" : "Select district first"}
-                  </option>
-                  {getBdThanas(shippingDistrict).map((thana) => (
-                    <option key={thana} value={thana}>
-                      {thana}
-                    </option>
-                  ))}
-                  {shippingArea &&
-                  !getBdThanas(shippingDistrict).includes(shippingArea) ? (
-                    <option value={shippingArea}>{shippingArea}</option>
-                  ) : null}
-                </select>
+                />
               </label>
               <label className="space-y-1.5 text-sm sm:col-span-2">
                 <span className="font-medium text-neutral-700">Address details</span>
