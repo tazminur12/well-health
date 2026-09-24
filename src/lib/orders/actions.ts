@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { AdminAuthError, requireAdminPermission } from "@/lib/admin/require-admin";
 import { queueOrderEmails, sendOrderConfirmationEmail, sendOrderStatusEmail } from "@/lib/email/orders";
 import { resolveCoupon } from "@/lib/checkout/actions";
+import { ensureCustomerFromOrder } from "@/lib/customers/sync-from-order";
 import { mapOrderToAdmin } from "@/lib/orders/mapper";
 import {
   adminCreateOrderSchema,
@@ -101,6 +102,7 @@ async function getStoreCheckoutSettings() {
 
 function revalidateOrders(orderId?: string) {
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/customers");
   revalidatePath("/admin");
   revalidatePath("/orders");
   if (orderId) revalidatePath(`/admin/orders/${orderId}`);
@@ -465,10 +467,25 @@ export async function createAdminOrderAction(
         });
       }
 
+      const customerId = await ensureCustomerFromOrder(
+        {
+          userId: data.userId,
+          email: data.email,
+          phone,
+          customerName: data.customerName,
+          shippingFullName: data.shippingFullName,
+          shippingPhone,
+          shippingDistrict: data.shippingDistrict,
+          shippingArea: data.shippingArea,
+          shippingDetails: data.shippingDetails,
+        },
+        tx
+      );
+
       return tx.order.create({
         data: {
           orderNumber,
-          userId: data.userId || null,
+          userId: customerId,
           email: data.email.trim().toLowerCase() || "",
           phone,
           customerName: data.customerName.trim(),

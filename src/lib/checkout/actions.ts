@@ -10,6 +10,7 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { getSessionUser } from "@/lib/auth/session";
+import { ensureCustomerFromOrder } from "@/lib/customers/sync-from-order";
 import {
   queueOrderEmails,
   sendAdminNewOrderEmail,
@@ -437,10 +438,25 @@ export async function placeOrderAction(
         });
       }
 
+      const customerId = await ensureCustomerFromOrder(
+        {
+          userId: session?.id ?? null,
+          email: data.email,
+          phone,
+          customerName: data.customerName,
+          shippingFullName: data.shippingFullName,
+          shippingPhone,
+          shippingDistrict: data.shippingDistrict,
+          shippingArea: data.shippingArea,
+          shippingDetails: data.shippingDetails,
+        },
+        tx
+      );
+
       return tx.order.create({
         data: {
           orderNumber,
-          userId: session?.id,
+          userId: customerId,
           email: data.email?.trim().toLowerCase() || "",
           phone,
           customerName: data.customerName.trim(),
@@ -501,6 +517,7 @@ export async function placeOrderAction(
 
     revalidatePath("/orders");
     revalidatePath("/admin/orders");
+    revalidatePath("/admin/customers");
     revalidatePath("/admin");
     revalidatePath("/shop");
 

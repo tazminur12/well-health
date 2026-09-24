@@ -15,11 +15,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  bdDistricts,
   bdDivisions,
   getBdDistricts,
   getBdDivisionForDistrict,
   getBdThanas,
 } from "@/components/customer/address-card";
+import type { AdminCustomer } from "@/components/admin/customers-data";
 import { CreatableSelect } from "@/components/admin/creatable-select";
 import { Button } from "@/components/ui/button";
 import { useAdminCustomers } from "@/hooks/use-admin-customers";
@@ -38,6 +40,21 @@ import { cn } from "@/lib/utils";
 
 const fieldClass =
   "h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-brand-green-400";
+
+function blankIfMissing(value: string) {
+  const trimmed = value.trim();
+  return trimmed === "—" ? "" : trimmed;
+}
+
+function matchLocationName(value: string, options: string[]) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return options.find((option) => option.toLowerCase() === trimmed.toLowerCase()) ?? trimmed;
+}
+
+function savedAddress(customer: AdminCustomer) {
+  return customer.addresses.find((address) => address.isDefault) ?? customer.addresses[0] ?? null;
+}
 
 type LineDraft = {
   productId: string;
@@ -129,15 +146,40 @@ export function AdminOrderForm() {
   function applyCustomer(customerId: string) {
     const customer = customers.find((row) => row.id === customerId);
     if (!customer) return;
+    const address = savedAddress(customer);
+    const nextEmail = blankIfMissing(customer.email);
+    const nextPhone = blankIfMissing(address?.phone || customer.phone);
+    const nextName = customer.name;
+
     setUserId(customer.id);
-    setCustomerName(customer.name);
-    setEmail(customer.email);
-    setPhone(customer.phone);
-    setCustomerQuery(customer.name);
-    if (sameAsCustomer) {
-      setShippingFullName(customer.name);
-      setShippingPhone(customer.phone);
+    setCustomerName(nextName);
+    setEmail(nextEmail);
+    setPhone(nextPhone);
+    setCustomerQuery(nextName);
+    setShippingFullName(address?.fullName?.trim() || nextName);
+    setShippingPhone(nextPhone);
+
+    if (!address) {
+      setShippingDivision("");
+      setShippingDistrict("");
+      setShippingArea("");
+      setShippingDetails("");
+      return;
     }
+
+    const district = matchLocationName(address.city, bdDistricts);
+    const division =
+      getBdDivisionForDistrict(district) ||
+      matchLocationName(address.city, bdDivisions);
+    setShippingDivision(division);
+    setShippingDistrict(district);
+    setShippingArea(address.area?.trim() ?? "");
+    setShippingDetails(address.line1.trim());
+
+    const zoneName = address.zone?.trim().toLowerCase();
+    if (!zoneName) return;
+    const zone = activeZones.find((item) => item.name.trim().toLowerCase() === zoneName);
+    if (zone) setZoneId(zone.id);
   }
 
   function addProduct(productId: string) {
@@ -278,7 +320,9 @@ export function AdminOrderForm() {
                   {filteredCustomers.length === 0 ? (
                     <p className="px-3 py-3 text-sm text-neutral-500">No matching customers.</p>
                   ) : (
-                    filteredCustomers.map((customer) => (
+                    filteredCustomers.map((customer) => {
+                      const address = savedAddress(customer);
+                      return (
                       <button
                         className="flex w-full items-center justify-between gap-3 border-b border-neutral-100 px-3 py-2.5 text-left last:border-0 hover:bg-brand-green-50/50"
                         key={customer.id}
@@ -288,14 +332,22 @@ export function AdminOrderForm() {
                         <div>
                           <p className="text-sm font-medium text-neutral-900">{customer.name}</p>
                           <p className="text-xs text-neutral-500">
-                            {customer.email} · {customer.phone}
+                            {[blankIfMissing(customer.email), blankIfMissing(customer.phone)]
+                              .filter(Boolean)
+                              .join(" · ") || "No contact details"}
                           </p>
+                          {address ? (
+                            <p className="text-xs text-neutral-400">
+                              {[address.line1, address.area, address.city].filter(Boolean).join(", ")}
+                            </p>
+                          ) : null}
                         </div>
                         {userId === customer.id ? (
                           <span className="text-xs font-semibold text-brand-green-700">Selected</span>
                         ) : null}
                       </button>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               ) : null}

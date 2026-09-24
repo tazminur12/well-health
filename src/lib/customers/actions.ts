@@ -1,6 +1,6 @@
 "use server";
 
-import { Role, UserStatus } from "@prisma/client";
+import { Prisma, Role, UserStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import type { AdminCustomer } from "@/components/admin/customers-data";
@@ -23,6 +23,23 @@ type ActionResult<T = undefined> = {
   data?: T;
 };
 
+const customerInclude = {
+  addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }] },
+  orders: {
+    orderBy: { createdAt: "desc" },
+    include: { items: { select: { id: true } } },
+  },
+} satisfies Prisma.UserInclude;
+
+async function loadAdminCustomer(id: string) {
+  const user = await prisma.user.findFirst({
+    where: { id, role: Role.CUSTOMER },
+    include: customerInclude,
+  });
+  if (!user) return null;
+  return mapUserToAdminCustomer(user);
+}
+
 function authErrorResult<T = undefined>(error: unknown): ActionResult<T> | null {
   if (
     error instanceof AdminAuthError ||
@@ -39,6 +56,7 @@ export async function listCustomersAction(): Promise<ActionResult<AdminCustomer[
     const users = await prisma.user.findMany({
       where: { role: Role.CUSTOMER },
       orderBy: { createdAt: "desc" },
+      include: customerInclude,
     });
     return { data: users.map(mapUserToAdminCustomer) };
   } catch (error) {
@@ -54,11 +72,9 @@ export async function getCustomerAction(
 ): Promise<ActionResult<AdminCustomer>> {
   try {
     await requireAdminPermission("customers");
-    const user = await prisma.user.findFirst({
-      where: { id, role: Role.CUSTOMER },
-    });
-    if (!user) return { error: "Customer not found." };
-    return { data: mapUserToAdminCustomer(user) };
+    const customer = await loadAdminCustomer(id);
+    if (!customer) return { error: "Customer not found." };
+    return { data: customer };
   } catch (error) {
     const auth = authErrorResult<AdminCustomer>(error);
     if (auth) return auth;
@@ -135,7 +151,8 @@ export async function createCustomerAction(
     });
 
     revalidatePath("/admin/customers");
-    return { data: mapUserToAdminCustomer(user) };
+    const customer = await loadAdminCustomer(user.id);
+    return { data: customer ?? mapUserToAdminCustomer(user) };
   } catch (error) {
     const auth = authErrorResult<AdminCustomer>(error);
     if (auth) return auth;
@@ -187,7 +204,8 @@ export async function updateCustomerAction(
 
     revalidatePath("/admin/customers");
     revalidatePath(`/admin/customers/${id}`);
-    return { data: mapUserToAdminCustomer(user) };
+    const customer = await loadAdminCustomer(id);
+    return { data: customer ?? mapUserToAdminCustomer(user) };
   } catch (error) {
     const auth = authErrorResult<AdminCustomer>(error);
     if (auth) return auth;
@@ -223,7 +241,8 @@ export async function setCustomerStatusAction(
 
     revalidatePath("/admin/customers");
     revalidatePath(`/admin/customers/${id}`);
-    return { data: mapUserToAdminCustomer(user) };
+    const customer = await loadAdminCustomer(id);
+    return { data: customer ?? mapUserToAdminCustomer(user) };
   } catch (error) {
     const auth = authErrorResult<AdminCustomer>(error);
     if (auth) return auth;

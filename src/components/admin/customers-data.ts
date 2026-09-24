@@ -13,11 +13,14 @@ export type CustomerOrderHistoryItem = {
 export type CustomerAddress = {
   id: string;
   label: string;
+  fullName?: string;
+  phone?: string;
   line1: string;
   line2?: string;
   area?: string;
   city: string;
   postalCode: string;
+  zone?: string | null;
   isDefault?: boolean;
 };
 

@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { orderStatusPillClass } from "@/components/admin/admin-orders-table";
 import {
   customerAvatarTone,
   customerInitials,
@@ -24,6 +25,7 @@ import {
   formatCustomerDate,
   formatCustomerPrice,
 } from "@/components/admin/customers-data";
+import { ORDER_STATUS_LABELS } from "@/lib/orders/schemas";
 import { Button } from "@/components/ui/button";
 import { useAdminCustomer, useCustomerMutations } from "@/hooks/use-admin-customers";
 import { confirmAdminAction, showAdminError, showAdminSuccess } from "@/lib/admin/alerts";
@@ -209,13 +211,15 @@ export default function AdminCustomerDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <a
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3.5 text-sm font-medium text-neutral-700 transition-colors hover:border-brand-green-600 hover:text-brand-green-700"
-                href={`mailto:${customer.email}`}
-              >
-                <Mail className="h-4 w-4" />
-                Email
-              </a>
+              {customer.email !== "—" ? (
+                <a
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3.5 text-sm font-medium text-neutral-700 transition-colors hover:border-brand-green-600 hover:text-brand-green-700"
+                  href={`mailto:${customer.email}`}
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </a>
+              ) : null}
               {customer.phone !== "—" ? (
                 <a
                   className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3.5 text-sm font-medium text-neutral-700 transition-colors hover:border-brand-green-600 hover:text-brand-green-700"
@@ -293,10 +297,42 @@ export default function AdminCustomerDetailPage() {
             <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center">
               <p className="text-sm font-medium text-neutral-700">No saved addresses</p>
               <p className="mt-1 text-xs text-neutral-500">
-                Addresses will appear after the Address model is connected.
+                Shipping details from orders will show up here.
               </p>
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-3">
+              {customer.addresses.map((address) => (
+                <article
+                  key={address.id}
+                  className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-neutral-900">
+                      {address.fullName || address.label}
+                    </p>
+                    {address.isDefault ? (
+                      <span className="rounded-full bg-brand-green-100 px-2.5 py-1 text-[11px] font-semibold text-brand-green-700">
+                        Default
+                      </span>
+                    ) : null}
+                  </div>
+                  {address.phone ? (
+                    <p className="mt-1 text-sm text-neutral-600">{address.phone}</p>
+                  ) : null}
+                  <p className="mt-2 text-sm leading-6 text-neutral-800">{address.line1}</p>
+                  <p className="text-sm leading-6 text-neutral-700">
+                    {[address.area, address.city].filter(Boolean).join(", ")}
+                  </p>
+                  {address.zone ? (
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-brand-green-700">
+                      Zone: {address.zone}
+                    </p>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
@@ -309,10 +345,42 @@ export default function AdminCustomerDetailPage() {
           <div className="mt-4 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-12 text-center">
             <p className="text-sm font-medium text-neutral-700">No orders yet</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Order history will populate when checkout and the Orders backend are live.
+              Orders placed with this phone or email will be listed here.
             </p>
           </div>
-        ) : null}
+        ) : (
+          <ul className="mt-4 divide-y divide-neutral-100">
+            {customer.orderHistory.map((order) => (
+              <li key={order.id}>
+                <Link
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-neutral-50"
+                  href={`/admin/orders/${order.id}`}
+                >
+                  <div>
+                    <p className="font-semibold text-neutral-900">{order.orderNumber}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      {formatCustomerDate(order.date)} · {order.itemCount}{" "}
+                      {order.itemCount === 1 ? "item" : "items"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                        orderStatusPillClass[order.status]
+                      )}
+                    >
+                      {ORDER_STATUS_LABELS[order.status]}
+                    </span>
+                    <span className="font-semibold text-brand-green-700">
+                      {formatCustomerPrice(order.total)}
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
