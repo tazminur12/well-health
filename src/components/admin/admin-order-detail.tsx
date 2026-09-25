@@ -11,6 +11,7 @@ import {
   Package2,
   Printer,
   Trash2,
+  Truck,
   User,
 } from "lucide-react";
 import Image from "next/image";
@@ -123,7 +124,8 @@ type AdminOrderDetailProps = {
 export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
   const router = useRouter();
   const { data: order, isLoading, isError, error, refetch } = useAdminOrder(orderId);
-  const { updateStatus, updatePayment, updateNotes, deleteOrder } = useOrderMutations();
+  const { updateStatus, updatePayment, updateNotes, updateFreeShipping, deleteOrder } =
+    useOrderMutations();
   const [isPdfPending, startPdf] = useTransition();
   const [pdfKind, setPdfKind] = useState<"invoice" | "packing" | null>(null);
 
@@ -243,6 +245,27 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
     try {
       await updatePayment.mutateAsync({ id: order.id, paymentStatus });
       await showAdminSuccess("Payment updated", "Payment status saved.");
+      void refetch();
+    } catch (err) {
+      await showAdminError(
+        "Update failed",
+        err instanceof Error ? err.message : "Please try again."
+      );
+    }
+  }
+
+  async function handleFreeShippingToggle() {
+    if (!order || order.status === "CANCELLED") return;
+    const nextFree = order.shippingFee !== 0;
+    try {
+      const result = await updateFreeShipping.mutateAsync({
+        id: order.id,
+        freeShipping: nextFree,
+      });
+      await showAdminSuccess(
+        nextFree ? "Free delivery on" : "Delivery fee restored",
+        result.success ?? "Shipping updated."
+      );
       void refetch();
     } catch (err) {
       await showAdminError(
@@ -654,6 +677,53 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
                 </p>
               ) : null}
             </div>
+            <button
+              aria-pressed={order.shippingFee === 0}
+              className={cn(
+                "mt-4 flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition",
+                order.shippingFee === 0
+                  ? "border-brand-green-400 bg-brand-green-50 shadow-sm"
+                  : "border-neutral-200 bg-neutral-50/70 hover:border-brand-green-300 hover:bg-brand-green-50/40"
+              )}
+              disabled={order.status === "CANCELLED" || updateFreeShipping.isPending}
+              onClick={() => void handleFreeShippingToggle()}
+              type="button"
+            >
+              <span
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                  order.shippingFee === 0
+                    ? "bg-brand-green-600 text-white"
+                    : "bg-white text-brand-green-700 ring-1 ring-neutral-200"
+                )}
+              >
+                {updateFreeShipping.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Truck className="h-5 w-5" />
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-neutral-900">
+                  Free delivery
+                </span>
+                <span className="mt-0.5 block text-xs text-neutral-500">
+                  {order.shippingFee === 0
+                    ? "Shipping fee is ৳0. Click to charge the zone fee again."
+                    : "Click to waive the shipping fee on this order"}
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+                  order.shippingFee === 0
+                    ? "bg-brand-green-600 text-white"
+                    : "bg-white text-neutral-500 ring-1 ring-neutral-200"
+                )}
+              >
+                {order.shippingFee === 0 ? "On" : "Off"}
+              </span>
+            </button>
           </section>
 
           <SteadfastOrderPanel order={order} />

@@ -163,25 +163,32 @@ function ctaButton(label: string, href: string) {
 }
 
 async function sendOrderEmail(input: {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   logLabel: string;
 }): Promise<SendOrderEmailResult> {
-  if (!isValidEmail(input.to)) {
+  const recipients = (Array.isArray(input.to) ? input.to : [input.to]).filter((email) =>
+    isValidEmail(email)
+  );
+  if (recipients.length === 0) {
     return { ok: true, skipped: true };
   }
 
   const resend = getResendClientSafe();
   if (!resend) {
-    console.info(`[${input.logLabel}] Resend not configured. Preview for:`, input.to, input.subject);
+    console.info(
+      `[${input.logLabel}] Resend not configured. Preview for:`,
+      recipients.join(", "),
+      input.subject
+    );
     return { ok: true, preview: true };
   }
 
   try {
     const { data, error } = await resend.emails.send({
       from: getEmailFrom(),
-      to: input.to,
+      to: recipients,
       subject: input.subject,
       html: input.html,
       replyTo: process.env.EMAIL_SUPPORT?.trim() || undefined,
@@ -310,13 +317,25 @@ function buildStatusUpdateHtml(
   });
 }
 
+/** Always notified when a customer places an order on the website. */
+const WEBSITE_ORDER_ALERT_EMAIL = "joheroulislam179@gmail.com";
+
+function websiteOrderAlertRecipients(supportEmail: string) {
+  const emails = [
+    WEBSITE_ORDER_ALERT_EMAIL,
+    process.env.ADMIN_EMAIL?.trim() || "",
+    supportEmail.trim(),
+  ];
+  return [...new Set(emails.filter((email) => isValidEmail(email)))];
+}
+
 function buildAdminNewOrderHtml(order: OrderEmailPayload, storeName: string) {
   const appUrl = getAppUrl();
-  const adminUrl = `${appUrl}/admin/orders`;
+  const adminUrl = `${appUrl}/admin/orders/${order.orderId}`;
 
   const bodyHtml = `
     <p style="margin:0 0 14px;line-height:1.65;color:#4b5563">
-      A new order has been placed on <strong>${escapeHtml(storeName)}</strong>.
+      A client has placed an order on your website, <strong>${escapeHtml(storeName)}</strong>.
     </p>
     <div style="background:#E8F5EE;border-radius:12px;padding:14px 16px;margin:0 0 16px">
       <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0B4D3A;text-transform:uppercase;letter-spacing:0.08em">${escapeHtml(order.orderNumber)}</p>
@@ -387,18 +406,17 @@ export async function sendAdminNewOrderEmail(
 ): Promise<SendOrderEmailResult> {
   const payload = toOrderEmailPayload(order);
   const store = await getPublicStoreSettings();
-  const adminEmail =
-    process.env.ADMIN_EMAIL?.trim() || store.supportEmail?.trim() || "";
+  const recipients = websiteOrderAlertRecipients(store.supportEmail);
 
-  if (!isValidEmail(adminEmail)) {
+  if (recipients.length === 0) {
     return { ok: true, skipped: true };
   }
 
   const html = buildAdminNewOrderHtml(payload, store.storeName);
 
   return sendOrderEmail({
-    to: adminEmail,
-    subject: `New order ${payload.orderNumber} · ${formatEmailMoney(payload.total)}`,
+    to: recipients,
+    subject: `A client ordered on your website — ${payload.orderNumber} · ${formatEmailMoney(payload.total)}`,
     html,
     logLabel: "admin-new-order",
   });

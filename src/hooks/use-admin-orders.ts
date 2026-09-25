@@ -8,6 +8,7 @@ import {
   getOrderAction,
   getOrderStatsAction,
   listOrdersAction,
+  updateOrderFreeShippingAction,
   updateOrderNotesAction,
   updateOrderPaymentAction,
   updateOrderStatusAction,
@@ -117,6 +118,15 @@ export function useOrderMutations() {
     onSuccess: invalidate,
   });
 
+  const updateFreeShipping = useMutation({
+    mutationFn: async ({ id, freeShipping }: { id: string; freeShipping: boolean }) => {
+      const result = await updateOrderFreeShippingAction(id, { freeShipping });
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: invalidate,
+  });
+
   const deleteOrder = useMutation({
     mutationFn: async (id: string) => {
       const result = await deleteOrderAction(id);
@@ -126,5 +136,12 @@ export function useOrderMutations() {
     onSuccess: invalidate,
   });
 
-  return { createOrder, updateStatus, updatePayment, updateNotes, deleteOrder };
+  return {
+    createOrder,
+    updateStatus,
+    updatePayment,
+    updateNotes,
+    updateFreeShipping,
+    deleteOrder,
+  };
 }

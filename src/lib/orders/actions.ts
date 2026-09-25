@@ -20,6 +20,7 @@ import {
   type AdminCreateOrderInput,
   type AdminOrder,
   type AdminOrderStats,
+  updateOrderFreeShippingSchema,
   updateOrderNotesSchema,
   updateOrderPaymentSchema,
   updateOrderStatusSchema,
@@ -326,6 +327,84 @@ export async function updateOrderNotesAction(
 
     revalidateOrders(id);
     return { data: mapOrderToAdmin(updated), success: "Notes saved." };
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+export async function updateOrderFreeShippingAction(
+  id: string,
+  input: unknown
+): Promise<OrderActionResult<AdminOrder>> {
+  try {
+    await requireAdminPermission("orders");
+    const parsed = updateOrderFreeShippingSchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? "Invalid delivery option." };
+    }
+
+    const existing = await prisma.order.findUnique({
+      where: { id },
+      include: orderInclude,
+    });
+    if (!existing) return { error: "Order not found." };
+    if (existing.status === OrderStatus.CANCELLED) {
+      return { error: "Cannot change delivery on a cancelled order." };
+    }
+
+    const subtotal = Number(existing.subtotal);
+    const discount = Number(existing.discount);
+    const currentFee = Number(existing.shippingFee);
+    const wantsFree = parsed.data.freeShipping;
+
+    let shippingFee = currentFee;
+    if (wantsFree) {
+      shippingFee = 0;
+    } else if (currentFee === 0) {
+      const zone = existing.shippingZoneId
+        ? await prisma.shippingZone.findUnique({ where: { id: existing.shippingZoneId } })
+        : existing.shippingZoneName
+          ? await prisma.shippingZone.findFirst({
+              where: { name: existing.shippingZoneName },
+            })
+          : null;
+      if (!zone) {
+        return {
+          error:
+            "No shipping zone is saved on this order, so the delivery fee cannot be restored.",
+        };
+      }
+      shippingFee = Number(zone.baseFee);
+    }
+
+    const total = Math.max(0, Math.round((subtotal - discount + shippingFee) * 100) / 100);
+    shippingFee = Math.round(shippingFee * 100) / 100;
+
+    if (shippingFee === currentFee && total === Number(existing.total)) {
+      return { data: mapOrderToAdmin(existing), success: "Delivery fee unchanged." };
+    }
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: { shippingFee, total },
+      include: orderInclude,
+    });
+
+    revalidateOrders(id);
+    revalidatePath("/admin/reports");
+    revalidatePath("/admin/payments");
+    revalidatePath(`/orders/${updated.orderNumber}`);
+
+    const courierNote = existing.steadfastConsignmentId
+      ? " The Steadfast consignment was already sent, so its COD amount is unchanged."
+      : "";
+
+    return {
+      data: mapOrderToAdmin(updated),
+      success: wantsFree
+        ? `Free delivery is on for this order.${courierNote}`
+        : `Delivery fee restored.${courierNote}`,
+    };
   } catch (error) {
     return handleError(error);
   }

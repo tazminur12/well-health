@@ -28,6 +28,10 @@ export const updateOrderNotesSchema = z.object({
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
+export const updateOrderFreeShippingSchema = z.object({
+  freeShipping: z.boolean(),
+});
+
 export const adminCreateOrderItemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().min(1).max(99),
@@ -61,6 +65,7 @@ export const adminCreateOrderSchema = z.object({
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type UpdateOrderPaymentInput = z.infer<typeof updateOrderPaymentSchema>;
 export type UpdateOrderNotesInput = z.infer<typeof updateOrderNotesSchema>;
+export type UpdateOrderFreeShippingInput = z.infer<typeof updateOrderFreeShippingSchema>;
 export type AdminCreateOrderInput = z.infer<typeof adminCreateOrderSchema>;
 
 export type AdminOrderItem = {
