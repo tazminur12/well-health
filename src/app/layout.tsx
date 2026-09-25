@@ -1,5 +1,18 @@
+import "@fontsource/hind-siliguri/bengali-400.css";
+import "@fontsource/hind-siliguri/bengali-500.css";
+import "@fontsource/hind-siliguri/bengali-600.css";
+import "@fontsource/hind-siliguri/bengali-700.css";
+import "@fontsource/hind-siliguri/latin-400.css";
+import "@fontsource/hind-siliguri/latin-500.css";
+import "@fontsource/hind-siliguri/latin-600.css";
+import "@fontsource/hind-siliguri/latin-700.css";
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/sora/latin-500.css";
+import "@fontsource/sora/latin-600.css";
+import "@fontsource/sora/latin-700.css";
 import type { Metadata } from "next";
-import { Hind_Siliguri, Inter, Sora } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 // import { ChatWidget } from "@/components/chat/ChatWidget";
@@ -9,27 +22,6 @@ import { buildSiteStructuredData } from "@/lib/seo/site-structured-data";
 import { getPublicStoreSettings } from "@/lib/settings/public-queries";
 
 import "./globals.css";
-
-const sora = Sora({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-sora",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const hindSiliguri = Hind_Siliguri({
-  subsets: ["latin", "bengali"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-hind-siliguri",
-  display: "swap",
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, assets] = await Promise.all([
@@ -61,7 +53,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en-BD"
-      className={`${sora.variable} ${inter.variable} ${hindSiliguri.variable} h-full`}
+      className="h-full"
     >
       <body className="min-h-full flex flex-col">
         <script

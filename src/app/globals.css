@@ -37,6 +37,11 @@
     --input: 146 30% 88%;
     --ring: 154 71% 31%;
     --radius: 0.75rem;
+
+    /* Self-hosted via @fontsource so Hostinger builds do not fetch Google Fonts. */
+    --font-sora: "Sora";
+    --font-inter: "Inter";
+    --font-hind-siliguri: "Hind Siliguri";
   }
 }
 
